@@ -1,0 +1,180 @@
+/* ========================================
+   TOOLBAR STYLES
+   ======================================== */
+
+/* ---- Toolbar Container ---- */
+.toolbar-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: var(--r-pill);
+  margin-bottom: 10px;
+
+}
+
+/* ---- Toolbar Divider ---- */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--br-2);
+  margin: 0 6px;
+  flex-shrink: 0;
+}
+
+/* ---- Tool Button ---- */
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  border: none;
+  background: transparent;
+  color: var(--tx-3);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  position: relative;
+}
+
+.tool-btn:hover {
+  background: var(--bg-3);
+  color: var(--tx-1);
+  transform: translateY(-1px);
+}
+
+.tool-btn.active {
+  background: var(--a);
+  color: white;
+  box-shadow: 0 0 12px var(--a-glow);
+}
+
+.tool-btn.active:hover {
+  background: var(--a-light);
+}
+
+/* ---- Color Swatch ---- */
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-spring);
+  flex-shrink: 0;
+}
+
+.color-swatch:hover {
+  transform: scale(1.2);
+}
+
+.color-swatch.active {
+  border-color: var(--a-light);
+  box-shadow: 0 0 8px var(--a-glow);
+  transform: scale(1.15);
+}
+
+/* White swatch needs visible border */
+.color-swatch-white {
+  border-color: var(--br-3) !important;
+}
+
+/* ---- Hex Picker ---- */
+.hex-picker-label {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.hex-picker-label:hover {
+  transform: scale(1.2);
+}
+
+.hex-picker-gradient {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+  pointer-events: none;
+}
+
+.hex-picker-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.hex-picker-active {
+  border: 2px solid var(--a-light);
+  box-shadow: 0 0 8px var(--a-glow);
+}
+
+/* ---- Stroke Slider ---- */
+.stroke-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--bg-4);
+  border-radius: var(--r-pill);
+  outline: none;
+  cursor: pointer;
+}
+
+.stroke-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--a);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 6px var(--a-glow);
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.stroke-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.stroke-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--a);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---- Size Preset Button ---- */
+.size-preset-btn {
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--br-2);
+  background: var(--bg-3);
+  color: var(--tx-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.size-preset-btn:hover {
+  border-color: var(--a);
+  color: var(--tx-1);
+}
+
+.size-preset-btn.active {
+  background: var(--a);
+  border-color: var(--a);
+  color: white;
+}

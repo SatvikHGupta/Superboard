@@ -1,0 +1,113 @@
+/* ========================================
+   BUTTON STYLES
+   ======================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--r-lg);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--a);
+  outline-offset: 2px;
+}
+
+/* ---- Primary ---- */
+.btn-primary {
+  background: linear-gradient(135deg, var(--a), var(--a-dark));
+  color: white;
+  box-shadow: 0 2px 8px var(--a-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--a-light), var(--a));
+  box-shadow: var(--sh-glow);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background: var(--a-dark);
+  transform: translateY(0);
+  box-shadow: 0 1px 4px var(--a-glow);
+}
+
+/* ---- Ghost ---- */
+.btn-ghost {
+  background: transparent;
+  color: var(--tx-2);
+  border: 1px solid transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-3);
+  color: var(--tx-1);
+  border-color: var(--br-2);
+}
+
+.btn-ghost:active {
+  background: var(--bg-4);
+}
+
+/* ---- Danger ---- */
+.btn-danger {
+  background: transparent;
+  color: var(--tx-2);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+}
+
+/* ---- Icon Button ---- */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--r-md);
+  border: none;
+  background: transparent;
+  color: var(--tx-2);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.btn-icon:hover {
+  background: var(--bg-3);
+  color: var(--tx-1);
+}
+
+.btn-icon:active {
+  background: var(--bg-4);
+}
+
+.btn-icon.active {
+  background: var(--a);
+  color: white;
+  box-shadow: 0 0 12px var(--a-glow);
+}
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btn-icon:disabled:hover {
+  background: transparent;
+  color: var(--tx-2);
+}

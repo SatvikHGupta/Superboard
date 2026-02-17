@@ -1,0 +1,127 @@
+/* ========================================
+   CANVAS & WHITEBOARD STYLES
+   ======================================== */
+
+/* ---- Whiteboard Layout ---- */
+.whiteboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-0);
+}
+
+.whiteboard-main {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: var(--bg-1);
+}
+
+/* ---- Canvas Wrapper ---- */
+.canvas-wrapper {
+  position: relative;
+  display: inline-block;
+  min-width: max-content;
+  margin: auto;
+}
+
+.canvas-element {
+  display: block;
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-lg);
+}
+
+/* ---- Canvas Text Input ---- */
+.canvas-text-input {
+  position: absolute;
+  min-width: 120px;
+  min-height: 32px;
+  padding: 4px 6px;
+  font-family: 'Times New Roman', Times, serif;
+  line-height: 1.5;
+  border: 2px solid var(--a);
+  border-radius: var(--r-sm);
+  outline: none;
+  resize: both;
+  overflow: auto;
+  box-shadow: 0 0 12px var(--a-glow);
+  z-index: 10;
+}
+
+.canvas-text-input-text {
+  background: transparent;
+  color: currentColor;
+}
+
+.canvas-text-input-note {
+  color: #1a1a1a;
+  min-width: 180px;
+  min-height: 140px;
+}
+
+/* ---- Header Bar ---- */
+.wb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--br-1);
+}
+
+.wb-header-left,
+.wb-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wb-header-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wb-header-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tx-1);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Extend Button ---- */
+.extend-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--br-2);
+  background: var(--bg-2);
+  color: var(--tx-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--sh-md);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.extend-btn:hover {
+  border-color: var(--a);
+  color: var(--a-light);
+  box-shadow: var(--sh-glow);
+  transform: translateY(-2px);
+}
+
+.extend-btn:active {
+  transform: translateY(0);
+}

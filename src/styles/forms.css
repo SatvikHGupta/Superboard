@@ -1,0 +1,99 @@
+/* ========================================
+   FORM ELEMENTS — Inputs, Toggles, Badges
+   ======================================== */
+
+/* ---- Text Input ---- */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--br-2);
+  border-radius: var(--r-md);
+  color: var(--tx-1);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.input:focus {
+  border-color: var(--a);
+  box-shadow: 0 0 0 3px var(--a-glow);
+  background: var(--bg-2);
+}
+
+.input::placeholder {
+  color: var(--tx-4);
+}
+
+/* ---- Toggle Switch ---- */
+.toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--bg-4);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: background var(--dur-med) var(--ease-out);
+  border: 1px solid var(--br-2);
+  flex-shrink: 0;
+}
+
+.toggle-track.active {
+  background: var(--a);
+  border-color: var(--a);
+  box-shadow: 0 0 10px var(--a-glow);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--dur-med) var(--ease-spring);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-track.active .toggle-thumb {
+  transform: translateX(18px);
+}
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.badge-blue {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--blue);
+}
+
+.badge-green {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--green);
+}
+
+.badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber);
+}
+
+.badge-red {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red);
+}
+
+.badge-purple {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
+}

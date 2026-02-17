@@ -1,0 +1,33 @@
+/* ========================================
+   GLASSMORPHISM UTILITIES
+   ======================================== */
+
+.glass {
+  background: rgba(18, 24, 33, 0.7);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+  border: 1px solid var(--br-2);
+}
+
+.glass-strong {
+  background: rgba(18, 24, 33, 0.85);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid var(--br-3);
+}
+
+.glass-card {
+  background: var(--bg-2);
+  border: 1px solid var(--br-2);
+  border-radius: var(--r-xl);
+  box-shadow: var(--sh-md);
+  transition: transform var(--dur-med) var(--ease-out),
+              box-shadow var(--dur-med) var(--ease-out),
+              border-color var(--dur-med) var(--ease-out);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lg);
+  border-color: var(--br-3);
+}
