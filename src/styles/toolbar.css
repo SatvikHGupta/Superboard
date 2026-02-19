@@ -1,8 +1,18 @@
 /* ========================================
-   TOOLBAR STYLES
+   TOOLBAR STYLES — Superboard
    ======================================== */
 
-/* ---- Toolbar Container ---- */
+/* ---- Toolbar Outer Wrapper ---- */
+/* Desktop: horizontal bar centered above canvas */
+.toolbar {
+  display: flex;
+  justify-content: center;
+  padding: 8px 16px 0;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+/* ---- Toolbar Inner Bar ---- */
 .toolbar-bar {
   display: flex;
   align-items: center;
@@ -10,7 +20,7 @@
   padding: 6px 10px;
   border-radius: var(--r-pill);
   margin-bottom: 10px;
-
+  flex-wrap: nowrap;
 }
 
 /* ---- Toolbar Divider ---- */
@@ -36,6 +46,7 @@
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-out);
   position: relative;
+  flex-shrink: 0;
 }
 
 .tool-btn:hover {
@@ -75,12 +86,12 @@
   transform: scale(1.15);
 }
 
-/* White swatch needs visible border */
+/* White swatch needs a visible border */
 .color-swatch-white {
   border-color: var(--br-3) !important;
 }
 
-/* ---- Hex Picker ---- */
+/* ---- Hex / Custom Color Picker ---- */
 .hex-picker-label {
   position: relative;
   width: 24px;
@@ -119,7 +130,7 @@
   box-shadow: 0 0 8px var(--a-glow);
 }
 
-/* ---- Stroke Slider ---- */
+/* ---- Stroke Width Slider ---- */
 .stroke-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -155,7 +166,7 @@
   cursor: pointer;
 }
 
-/* ---- Size Preset Button ---- */
+/* ---- Font Size Preset Buttons ---- */
 .size-preset-btn {
   padding: 4px 10px;
   border-radius: var(--r-sm);
@@ -166,6 +177,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-out);
+  flex-shrink: 0;
 }
 
 .size-preset-btn:hover {
@@ -177,4 +189,65 @@
   background: var(--a);
   border-color: var(--a);
   color: white;
+}
+
+/* ── Mobile: toolbar becomes bottom bar ──────────── */
+/* (overrides applied in base.css @media blocks)     */
+@media (max-width: 680px) {
+  .toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    height: 58px;
+    padding: 0;
+    justify-content: flex-start;
+    background: var(--bg-2);
+    border-top: 1px solid var(--br-2);
+    z-index: 40;
+  }
+
+  .toolbar-bar {
+    width: 100%;
+    border-radius: 0;
+    margin-bottom: 0;
+    padding: 0 10px;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    /* Remove glass effect on mobile for perf */
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .toolbar-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tool-btn {
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Tighten up color swatches on mobile */
+  .color-swatch {
+    width: 20px;
+    height: 20px;
+  }
+
+  .hex-picker-label {
+    width: 20px;
+    height: 20px;
+  }
+
+  .size-preset-btn {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
 }

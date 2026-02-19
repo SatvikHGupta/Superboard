@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage.jsx';
 import Dashboard from './components/dashboard/Dashboard.jsx';
 import Whiteboard from './components/whiteboard/Whiteboard.jsx';
 import ViewerPage from './components/ViewerPage.jsx';
+import AdminPage from './components/admin/AdminPage.jsx';
 import { auth } from './firebase/config.js';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -15,6 +16,7 @@ var ROUTES = {
   DASHBOARD: 'dashboard',
   BOARD: 'board',
   VIEWER: 'viewer',
+  ADMIN: 'admin',
 };
 
 /* ──────────────────────────────────────────────
@@ -67,6 +69,12 @@ export function App() {
       }
     }
 
+    if (hash === '#/admin') {
+      setBoardId(null);
+      setPage(ROUTES.ADMIN);
+      return;
+    }
+
     setBoardId(null);
     setPage(ROUTES.DASHBOARD);
   }, []);
@@ -111,6 +119,11 @@ export function App() {
 
   if (!user) {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+
+  if (page === ROUTES.ADMIN) {
+    return <AdminPage user={user} onBack={handleBack} />;
   }
 
   if (page === ROUTES.BOARD && boardId) {

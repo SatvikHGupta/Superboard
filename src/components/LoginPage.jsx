@@ -5,36 +5,29 @@ export default function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
-  setLoading(true);
-  try {
-    const user = await signInWithGoogle();
-
-    localStorage.setItem(
-      "wb_user",
-      JSON.stringify({
+    setLoading(true);
+    try {
+      const user = await signInWithGoogle();
+      localStorage.setItem('wb_user', JSON.stringify({
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName
-      })
-    );
-
-    onLogin(user);
-  } catch (error) {
-    alert("Sign-in failed: " + error.message);
-    setLoading(false);
+        displayName: user.displayName,
+      }));
+      onLogin(user);
+    } catch (error) {
+      alert('Sign-in failed: ' + error.message);
+      setLoading(false);
+    }
   }
-}
-
 
   return (
     <div className="login-page">
-      {/* Ambient glow orbs */}
       <div className="login-orb login-orb-1" />
       <div className="login-orb login-orb-2" />
 
       <div className="glass-card login-card">
-        <div className="login-logo">Whiteboard</div>
-        <p className="login-subtitle">Collaborative drawing made simple</p>
+        <div className="login-logo">Superboard</div>
+        <p className="login-subtitle">Real-time collaborative whiteboards</p>
 
         <button
           className="login-btn-google"
@@ -42,7 +35,13 @@ export default function LoginPage({ onLogin }) {
           disabled={loading}
         >
           {loading ? (
-            <span>Signing in...</span>
+            <>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                style={{ animation: 'spin 1s linear infinite' }}>
+                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+              </svg>
+              Signing in...
+            </>
           ) : (
             <>
               <svg width="18" height="18" viewBox="0 0 24 24">
@@ -59,25 +58,36 @@ export default function LoginPage({ onLogin }) {
         <div className="login-features">
           <div className="login-feature">
             <div className="login-feature-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
             </div>
-            <span className="login-feature-text">Draw freely</span>
+            <span className="login-feature-text">9 drawing tools</span>
           </div>
           <div className="login-feature">
             <div className="login-feature-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+              </svg>
             </div>
-            <span className="login-feature-text">Collaborate</span>
+            <span className="login-feature-text">Live collaboration</span>
           </div>
           <div className="login-feature">
             <div className="login-feature-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
             </div>
-            <span className="login-feature-text">Export PNG/PDF</span>
+            <span className="login-feature-text">Export PNG / PDF</span>
           </div>
           <div className="login-feature">
             <div className="login-feature-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
             </div>
             <span className="login-feature-text">Secure sharing</span>
           </div>

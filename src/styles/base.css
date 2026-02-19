@@ -1,17 +1,20 @@
 /* ========================================
    BASE STYLES — Reset & Typography
+   Superboard
    ======================================== */
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 html {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 body {
@@ -19,10 +22,29 @@ body {
   color: var(--tx-1);
   line-height: 1.5;
   min-height: 100vh;
+  /* Prevent text selection during drawing on touch */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection inside inputs and textareas */
+input,
+textarea,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 #root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Focus visible (keyboard nav) ---- */
+:focus-visible {
+  outline: 2px solid var(--a);
+  outline-offset: 2px;
 }
 
 /* ---- Scrollbar ---- */
@@ -36,16 +58,226 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--tx-4);
+  background: var(--br-3);
   border-radius: var(--r-pill);
+  transition: background var(--dur-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--tx-3);
+  background: var(--tx-4);
 }
 
 /* ---- Selection ---- */
 ::selection {
   background: var(--a);
   color: white;
+}
+
+/* ---- Animations ---- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ========================================
+   RESPONSIVE — Tablet & Mobile
+   ======================================== */
+
+/* ── Tablet (≤ 900px) ── */
+@media (max-width: 900px) {
+  .dash-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .wb-header-title {
+    max-width: 140px;
+  }
+
+  /* Hide less critical center buttons on tablet */
+  .wb-header-center .toolbar-divider,
+  .wb-header-center .btn-icon:last-child {
+    display: none;
+  }
+}
+
+/* ── Mobile (≤ 680px) ── */
+@media (max-width: 680px) {
+
+  /* Dashboard header */
+  .dash-header {
+    padding: 10px 14px;
+  }
+
+  .dash-user-email {
+    display: none;
+  }
+
+  .dash-content {
+    padding: 14px;
+  }
+
+  .dash-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .create-board-form {
+    flex-direction: column;
+  }
+
+  .create-board-input {
+    width: 100%;
+  }
+
+  /* Toolbar moves to bottom on mobile */
+  .toolbar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    height: 58px !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border-top: 1px solid var(--br-2) !important;
+    border-right: none !important;
+    padding: 0 10px !important;
+    gap: 2px !important;
+    justify-content: flex-start !important;
+    border-radius: 0 !important;
+    z-index: 40 !important;
+    scrollbar-width: none;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Canvas area — leave room for bottom toolbar */
+  .whiteboard-main {
+    padding-bottom: 66px !important;
+    padding: 8px;
+    align-items: flex-start;
+  }
+
+  /* Header — tighten up */
+  .wb-header {
+    padding: 6px 10px;
+  }
+
+  .wb-header-title {
+    font-size: 13px;
+    max-width: 100px;
+  }
+
+  /* Hide some header center controls on mobile */
+  .wb-header-center {
+    gap: 2px;
+  }
+
+  /* Extend button — move up above toolbar */
+  .extend-btn {
+    bottom: 70px;
+    right: 12px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* Modals — full width on mobile */
+  .modal-content {
+    width: calc(100vw - 24px) !important;
+    max-width: 100% !important;
+    margin: 12px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
+  /* Login card */
+  .login-card {
+    padding: 28px 18px;
+    margin: 12px;
+  }
+
+  .login-logo {
+    font-size: 28px;
+  }
+
+  .login-features {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Viewer */
+  .viewer-canvas-area {
+    padding: 12px;
+  }
+
+  .viewer-header {
+    padding: 8px 12px;
+  }
+}
+
+/* ── Small mobile (≤ 400px) ── */
+@media (max-width: 400px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wb-header-center {
+    display: none;
+  }
+
+  .login-features {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ── Touch device canvas improvements ── */
+@media (hover: none) and (pointer: coarse) {
+  /* Prevent default touch scroll/zoom on canvas */
+  .canvas-wrapper {
+    touch-action: none;
+  }
+
+  /* Bigger hit targets for toolbar buttons */
+  .toolbar .btn-icon,
+  .tool-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

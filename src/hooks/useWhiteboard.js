@@ -46,7 +46,8 @@ export function useWhiteboard(boardId) {
     tool, color, strokeWidth, fontSize, setSelectedId
   );
 
-  useBoardPersistence(
+  // ─── Persistence + save status ────────────────
+  const { saveStatus } = useBoardPersistence(
     boardId, elements, setElements,
     boardHeight, setBoardHeight, canvasElRef
   );
@@ -74,6 +75,8 @@ export function useWhiteboard(boardId) {
     boardHeight,
     canvasElRef,
     selectedId,
+    setElements,
+    saveStatus,
 
     // Setters
     setTool,

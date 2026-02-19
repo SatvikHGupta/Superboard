@@ -12,7 +12,7 @@ export default function Toolbar({
   const showTextSizes = tool === TOOLS.TEXT || tool === TOOLS.NOTE;
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 16px 0' }}>
+    <div className="toolbar">
       <div className="toolbar-bar glass-strong">
         {/* Tools */}
         {TOOL_LIST.map(t => (
@@ -20,7 +20,7 @@ export default function Toolbar({
             key={t.id}
             className={'tool-btn' + (tool === t.id ? ' active' : '')}
             onClick={() => setTool(t.id)}
-            title={t.label}
+            title={`${t.label} (${t.shortcut})`}
           >
             <ToolIcon toolId={t.id} />
           </button>

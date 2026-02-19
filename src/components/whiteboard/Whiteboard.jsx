@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { TOOLS } from '../../constants/tools.js';
 import { SHORTCUTS } from '../../constants/shortcuts.js';
-import { getBoardById } from '../../utils/storage.js';
+import { getBoard } from '../../firebase/boardService.js';
 import { getCachedImage } from '../../utils/drawing/index.js';
+import { removeCursor } from '../../firebase/cursorService.js';
 import { useWhiteboard } from '../../hooks/useWhiteboard.js';
 import WhiteboardHeader from './WhiteboardHeader.jsx';
 import ExtendButton from './ExtendButton.jsx';
@@ -10,59 +11,88 @@ import Toolbar from '../toolbar/Toolbar.jsx';
 import Canvas from '../Canvas.jsx';
 import ShortcutsModal from '../ShortcutsModal.jsx';
 import ShareModal from '../ShareModal.jsx';
-import { broadcastCursor, onCursorsChange } from "../../firebase/cursorService.js";
+import { broadcastCursor, onCursorsChange } from '../../firebase/cursorService.js';
+
+function makeThrottle(fn, delay) {
+  let last = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - last >= delay) {
+      last = now;
+      fn(...args);
+    }
+  };
+}
 
 export default function Whiteboard({ boardId, onBack }) {
   const wb = useWhiteboard(boardId);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [remoteCursors, setRemoteCursors] = useState({});
+  const [boardData, setBoardData] = useState(null);
+  const [boardLoading, setBoardLoading] = useState(true);
+  const [boardMissing, setBoardMissing] = useState(false);
 
-  const board = getBoardById(boardId);
-  const boardName = board ? board.name : 'Whiteboard';
+  const user = JSON.parse(localStorage.getItem('wb_user') || 'null');
 
-  const user = JSON.parse(localStorage.getItem("wb_user") || "null");
-
-  function throttle(fn, delay) {
-    let last = 0;
-    return (...args) => {
-      const now = Date.now();
-      if (now - last >= delay) {
-        last = now;
-        fn(...args);
+  /* ── Load full board data from Firestore ───────── */
+  useEffect(() => {
+    if (!boardId) return;
+    getBoard(boardId).then(b => {
+      if (!b) {
+        setBoardMissing(true);
+      } else {
+        setBoardData(b);
       }
-    };
-  }
+      setBoardLoading(false);
+    }).catch(() => {
+      setBoardMissing(true);
+      setBoardLoading(false);
+    });
+  }, [boardId]);
 
+  /* ── FIX: Ensure drawing completes when tool changes (stylus fix) ── */
+  const prevToolRef = useRef(wb.tool);
+  useEffect(() => {
+    if (prevToolRef.current !== wb.tool && wb.isDrawing) {
+      wb.stopDrawing();
+    }
+    prevToolRef.current = wb.tool;
+  }, [wb.tool, wb.isDrawing, wb.stopDrawing]);
+
+  /* ── Cursor broadcast ─────────────────────────── */
   const throttledBroadcast = useRef(
-    throttle((x, y) => {
+    makeThrottle((x, y) => {
       if (!boardId || !user) return;
-      broadcastCursor(boardId, user.uid, user.displayName, x, y);
+      broadcastCursor(boardId, user.uid, user.displayName || user.email, x, y);
     }, 40)
   ).current;
 
   useEffect(() => {
-    if (!boardId) return;
-    const unsub = onCursorsChange(boardId, user?.uid, setRemoteCursors);
-    return unsub;
+    if (!boardId || !user) return;
+    const unsub = onCursorsChange(boardId, user.uid, setRemoteCursors);
+    return () => {
+      unsub();
+      removeCursor(boardId, user.uid).catch(() => {});
+    };
   }, [boardId]);
 
   useEffect(() => {
     const canvas = wb.canvasElRef?.current;
     if (!canvas) return;
-
     function handleMove(e) {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      throttledBroadcast(x, y);
+      throttledBroadcast(e.clientX - rect.left, e.clientY - rect.top);
     }
-
-    canvas.addEventListener("mousemove", handleMove);
-    return () => canvas.removeEventListener("mousemove", handleMove);
+    canvas.addEventListener('mousemove', handleMove);
+    return () => canvas.removeEventListener('mousemove', handleMove);
   }, [wb.canvasElRef, throttledBroadcast]);
 
-  /* Keyboard shortcuts */
+  const handleDeleteById = useCallback((id) => {
+    wb.setElements(prev => prev.filter(el => el.id !== id));
+  }, [wb.setElements]);
+
+  /* ── Keyboard shortcuts ───────────────────────── */
   useEffect(() => {
     function handleKey(e) {
       const tag = e.target.tagName;
@@ -90,7 +120,7 @@ export default function Whiteboard({ boardId, onBack }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [wb]);
 
-  /* Paste handler */
+  /* ── Paste handler with image compression ──────── */
   useEffect(() => {
     function handlePaste(e) {
       const tag = e.target.tagName;
@@ -110,12 +140,23 @@ export default function Whiteboard({ boardId, onBack }) {
             const img = new Image();
 
             img.onload = () => {
-              let w = img.width, h = img.height;
-              if (w > 600) { h = h * (600 / w); w = 600; }
-              if (h > 600) { w = w * (600 / h); h = 600; }
+              let w = img.width;
+              let h = img.height;
+              const MAX = 800;
+              if (w > MAX || h > MAX) {
+                if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                else { w = Math.round(w * MAX / h); h = MAX; }
+              }
 
-              getCachedImage(dataUrl);
-              wb.addImageElement(dataUrl, 100, 100, Math.round(w), Math.round(h));
+              const offscreen = document.createElement('canvas');
+              offscreen.width = w;
+              offscreen.height = h;
+              const ctx2 = offscreen.getContext('2d');
+              ctx2.drawImage(img, 0, 0, w, h);
+              const compressed = offscreen.toDataURL('image/jpeg', 0.65);
+
+              getCachedImage(compressed);
+              wb.addImageElement(compressed, 100, 100, w, h);
             };
 
             img.src = dataUrl;
@@ -137,7 +178,21 @@ export default function Whiteboard({ boardId, onBack }) {
     return () => window.removeEventListener('paste', handlePaste);
   }, [wb]);
 
-  if (!board) {
+  if (boardLoading) {
+    return (
+      <div className="error-page">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--a)" strokeWidth="2"
+            style={{ animation: 'spin 1s linear infinite' }}>
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <span style={{ color: 'var(--tx-3)', fontSize: 14 }}>Loading board...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (boardMissing) {
     return (
       <div className="error-page">
         <div className="error-card">
@@ -150,10 +205,15 @@ export default function Whiteboard({ boardId, onBack }) {
     );
   }
 
+  const isOwner = boardData && user && boardData.ownerId === user.uid;
+  const isEditor = boardData && user && !isOwner;
+
   return (
     <div className="whiteboard-layout">
       <WhiteboardHeader
-        boardName={boardName}
+        boardData={boardData}
+        isOwner={isOwner}
+        isEditor={isEditor}
         onBack={onBack}
         onUndo={wb.undo}
         onRedo={wb.redo}
@@ -167,6 +227,7 @@ export default function Whiteboard({ boardId, onBack }) {
         elements={wb.elements}
         boardWidth={wb.boardWidth}
         boardHeight={wb.boardHeight}
+        saveStatus={wb.saveStatus}
       />
 
       <Toolbar
@@ -204,6 +265,7 @@ export default function Whiteboard({ boardId, onBack }) {
           pushToHistory={wb.pushToHistory}
           moveElementBy={wb.moveElementBy}
           resizeElementBy={wb.resizeElementBy}
+          deleteElementById={handleDeleteById}
           canvasElRef={wb.canvasElRef}
           remoteCursors={remoteCursors}
         />

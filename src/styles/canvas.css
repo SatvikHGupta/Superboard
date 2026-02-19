@@ -1,5 +1,5 @@
 /* ========================================
-   CANVAS & WHITEBOARD STYLES
+   CANVAS & WHITEBOARD STYLES — Superboard
    ======================================== */
 
 /* ---- Whiteboard Layout ---- */
@@ -8,6 +8,7 @@
   flex-direction: column;
   height: 100vh;
   background: var(--bg-0);
+  overflow: hidden;
 }
 
 .whiteboard-main {
@@ -15,7 +16,7 @@
   overflow: auto;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 20px;
   background: var(--bg-1);
 }
@@ -26,15 +27,19 @@
   display: inline-block;
   min-width: max-content;
   margin: auto;
+  /* Prevent browser scroll/zoom hijacking touch on canvas */
+  touch-action: none;
 }
 
 .canvas-element {
   display: block;
   border-radius: var(--r-lg);
   box-shadow: var(--sh-lg);
+  /* Prevent context menu on long-press mobile */
+  -webkit-touch-callout: none;
 }
 
-/* ---- Canvas Text Input ---- */
+/* ---- Canvas Text Input Overlay ---- */
 .canvas-text-input {
   position: absolute;
   min-width: 120px;
@@ -48,12 +53,14 @@
   resize: both;
   overflow: auto;
   box-shadow: 0 0 12px var(--a-glow);
-  z-index: 10;
+  /* Must be above canvas but below modals */
+  z-index: 15;
 }
 
 .canvas-text-input-text {
-  background: transparent;
+  background: rgba(6, 8, 13, 0.85);
   color: currentColor;
+  backdrop-filter: blur(4px);
 }
 
 .canvas-text-input-note {
@@ -62,26 +69,37 @@
   min-height: 140px;
 }
 
-/* ---- Header Bar ---- */
+/* ---- Whiteboard Header Bar ---- */
 .wb-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
   border-bottom: 1px solid var(--br-1);
+  flex-shrink: 0;
+  gap: 8px;
 }
 
-.wb-header-left,
+.wb-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
 .wb-header-right {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .wb-header-center {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .wb-header-title {
@@ -92,9 +110,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 1;
 }
 
-/* ---- Extend Button ---- */
+/* ---- Extend Board Button ---- */
 .extend-btn {
   position: fixed;
   bottom: 20px;
@@ -124,4 +143,37 @@
 
 .extend-btn:active {
   transform: translateY(0);
+}
+
+/* ---- Mobile adjustments ---- */
+@media (max-width: 680px) {
+  .whiteboard-main {
+    padding: 10px;
+    padding-bottom: 68px; /* clear bottom toolbar */
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .wb-header {
+    padding: 6px 10px;
+  }
+
+  .wb-header-title {
+    font-size: 13px;
+    max-width: 110px;
+  }
+
+  /* Shift extend button above mobile toolbar */
+  .extend-btn {
+    bottom: 68px;
+    right: 12px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* Text input on mobile — wider min size for finger use */
+  .canvas-text-input {
+    min-width: 160px;
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
 }

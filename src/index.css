@@ -13,6 +13,7 @@
 @import './styles/toolbar.css';
 @import './styles/canvas.css';
 @import './styles/pages.css';
+@import './styles/admin.css'
 
 /* ---- Tailwind v4 ---- */
 @import "tailwindcss";
