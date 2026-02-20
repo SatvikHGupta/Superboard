@@ -1,7 +1,26 @@
+// src/components/Canvas.jsx
+//
+// Responsibilities (after refactor):
+//   1. DPR-aware canvas sizing
+//   2. RAF render loop (delegates cursor drawing to utils/drawing/cursors.js)
+//   3. Pointer event routing — delegates drag/resize to useCanvasDrag,
+//      text overlay lifecycle to CanvasTextOverlay
+//   4. Cursor broadcast throttle (40 ms)
+//
+// What moved out:
+//   • Remote cursor drawing  → utils/drawing/cursors.js
+//   • Drag / resize machine  → hooks/useCanvasDrag.js
+//   • Textarea overlay JSX   → components/CanvasTextOverlay.jsx
+
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { TOOLS } from '../constants/tools.js';
-import { NOTE_COLORS } from '../constants/colors.js';
-import { getPointerPos, renderCanvas, isOnResizeHandle, getElementBounds, hitTest } from '../utils/drawing/index.js';
+import { TOOLS }                from '../constants/tools.js';
+import { NOTE_COLORS }          from '../constants/colors.js';
+import {
+  getPointerPos, renderCanvas,
+  hitTest, drawRemoteCursors,
+} from '../utils/drawing/index.js';
+import { useCanvasDrag }        from '../hooks/useCanvasDrag.js';
+import CanvasTextOverlay        from './CanvasTextOverlay.jsx';
 
 export default function Canvas({
   elements, currentElement, tool, color, strokeWidth, fontSize,
@@ -13,35 +32,51 @@ export default function Canvas({
   deleteElementById,
   canvasElRef,
   remoteCursors,
+  onCursorMove, // (x, y) => void — fires even in read-only so viewers appear
+  canDraw,      // boolean — false = viewer: no drawing, toolbar disabled
 }) {
   const canvasRef = useRef(null);
-  const rafRef = useRef(null);
+  const rafRef    = useRef(null);
+
+  // ── Text overlay state ──────────────────────────────────────────────────
   const [textInput, setTextInput] = useState(null);
-  const submittedRef = useRef(false);
-  const textInputRef = useRef(textInput);
+  const submittedRef  = useRef(false);
+  const textInputRef  = useRef(textInput);
   textInputRef.current = textInput;
 
-  const [drag, setDrag] = useState(null);
-  const dragRef = useRef(null);
-  dragRef.current = drag;
+  // ── Remote cursors ref (fresh data for RAF without adding to dep array) ─
+  const remoteCursorsRef = useRef(remoteCursors);
+  remoteCursorsRef.current = remoteCursors;
 
+  // ── Cursor broadcast throttle — max 25 broadcasts / sec ────────────────
+  const cursorThrottleRef = useRef(0);
+
+  // ── Drag / resize hook ──────────────────────────────────────────────────
+  const { dragRef, tryStartDrag, handleDragMove, stopDrag, dragCursor } =
+    useCanvasDrag({ elements, selectedId, moveElementBy, resizeElementBy, pushToHistory });
+
+  // Assign both the local ref and the forwarded parent canvasElRef
   function setCanvasRef(el) {
     canvasRef.current = el;
     if (canvasElRef) canvasElRef.current = el;
   }
 
-  /* ── Canvas size (DPR-aware) ──────────────────── */
+  /* ── Canvas sizing (DPR-aware) ─────────────────────────────────────────── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = boardWidth * dpr;
-    canvas.height = boardHeight * dpr;
-    canvas.style.width = boardWidth + 'px';
+    canvas.width        = boardWidth  * dpr;
+    canvas.height       = boardHeight * dpr;
+    canvas.style.width  = boardWidth  + 'px';
     canvas.style.height = boardHeight + 'px';
   }, [boardWidth, boardHeight]);
 
-  /* ── Render loop ──────────────────────────────── */
+  /* ── RAF render loop ───────────────────────────────────────────────────────
+   * remoteCursors is intentionally excluded from deps — the loop reads
+   * remoteCursorsRef.current so it always has fresh cursor data without
+   * rescheduling RAF on every cursor update from other users (up to 25/sec).
+   */
   useEffect(() => {
     function draw() {
       const canvas = canvasRef.current;
@@ -52,243 +87,160 @@ export default function Canvas({
 
       const allEls = currentElement ? [...elements, currentElement] : elements;
       renderCanvas(ctx, allEls, boardWidth, boardHeight, showGrid, selectedId);
+      drawRemoteCursors(ctx, remoteCursorsRef.current);
 
-      if (remoteCursors) {
-        Object.values(remoteCursors).forEach(cursor => {
-          if (!cursor) return;
-          ctx.fillStyle = cursor.color || '#ff0000';
-          ctx.beginPath();
-          ctx.arc(cursor.x, cursor.y, 6, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.font = '12px sans-serif';
-          ctx.fillStyle = '#000';
-          ctx.fillText(cursor.userName || '', cursor.x + 8, cursor.y - 8);
-        });
-      }
+      rafRef.current = requestAnimationFrame(draw);
     }
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [elements, currentElement, selectedId, showGrid, boardWidth, boardHeight, remoteCursors]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elements, currentElement, selectedId, showGrid, boardWidth, boardHeight]);
+  // remoteCursors deliberately omitted — see note above
 
-  /* ── Submit text / note input ─────────────────── */
+  /* ── Submit text / note ────────────────────────────────────────────────── */
   const submitText = useCallback(() => {
     const ti = textInputRef.current;
     if (!ti || submittedRef.current) return;
     submittedRef.current = true;
-    const ta = document.getElementById('canvas-text-area');
+
+    const ta  = document.getElementById('canvas-text-area');
     const val = ta ? ta.value : '';
 
     if (!val.trim()) {
-      // If we were editing an existing element, put it back
+      // Empty — restore original element if editing an existing one
       if (ti.editingId && ti.originalElement) {
-        // Nothing to restore — deleteElementById already ran on open,
-        // so we re-add the original unchanged
-        if (ti.isNote) {
-          addNoteElement(
-            ti.originalElement.text,
-            ti.originalElement.startX,
-            ti.originalElement.startY,
-            ti.originalElement.fontSize,
-            ti.originalElement.bgColor,
-            ti.originalElement.width,
-            ti.originalElement.height,
-          );
-        } else {
-          addTextElement(
-            ti.originalElement.text,
-            ti.originalElement.startX,
-            ti.originalElement.startY,
-            ti.originalElement.color,
-            ti.originalElement.fontSize,
-            ti.originalElement.maxWidth,
-          );
-        }
+        const o = ti.originalElement;
+        if (ti.isNote) addNoteElement(o.text, o.startX, o.startY, o.fontSize, o.bgColor, o.width, o.height);
+        else           addTextElement(o.text, o.startX, o.startY, o.color, o.fontSize, o.maxWidth);
       }
       setTextInput(null);
       return;
     }
 
     if (ti.isNote) {
-      const w = ta ? ta.offsetWidth : (ti.originalElement?.width || 200);
+      const w = ta ? ta.offsetWidth  : (ti.originalElement?.width  || 200);
       const h = ta ? ta.offsetHeight : (ti.originalElement?.height || 150);
       addNoteElement(val, ti.canvasX, ti.canvasY, fontSize, ti.bgColor, w, h);
     } else {
-      const w = ta ? ta.offsetWidth : null;
-      addTextElement(val, ti.canvasX, ti.canvasY, color, fontSize, w);
+      addTextElement(val, ti.canvasX, ti.canvasY, color, fontSize, ta ? ta.offsetWidth : null);
     }
     setTextInput(null);
   }, [addTextElement, addNoteElement, color, fontSize]);
 
-  /* ── Open text input for a new element ───────── */
   function openTextInput(e, isNote, canvasX, canvasY) {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRef.current.getBoundingClientRect();
     submittedRef.current = false;
     setTextInput({
       screenX: e.clientX - rect.left,
       screenY: e.clientY - rect.top,
-      canvasX,
-      canvasY,
-      isNote,
-      bgColor: isNote ? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)] : undefined,
+      canvasX, canvasY, isNote,
+      bgColor: isNote
+        ? NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)]
+        : undefined,
     });
   }
 
-  /* ── Open text input to EDIT an existing element ─ */
-  function openEditInput(e, el) {
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    // Delete the old element (history snapshot already pushed by double-click handler)
+  function openEditInput(_e, el) {
     deleteElementById(el.id);
     submittedRef.current = false;
     setTextInput({
-      // Position the textarea at the element's actual location
-      screenX: el.startX,
-      screenY: el.startY,
-      canvasX: el.startX,
-      canvasY: el.startY,
-      isNote: el.type === 'note',
+      screenX: el.startX, screenY: el.startY,
+      canvasX: el.startX, canvasY: el.startY,
+      isNote:  el.type === 'note',
       bgColor: el.bgColor,
-      editingId: el.id,
-      originalElement: el, // keep reference in case user cancels
+      editingId:       el.id,
+      originalElement: el,
     });
   }
 
-  /* ── Pointer down ─────────────────────────────── */
+  /* ── Pointer down ──────────────────────────────────────────────────────── */
   const handlePointerDown = useCallback((e) => {
+    if (canDraw === false) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.setPointerCapture(e.pointerId);
     const pos = getPointerPos(e, canvas);
 
+    // Commit any in-progress text input first
     if (textInputRef.current) {
       submittedRef.current = false;
       submitText();
+      return; // don't process pointer further until text is committed
     }
 
     if (tool === TOOLS.SELECT) {
-      if (selectedId) {
-        const sel = elements.find(el => el.id === selectedId);
-        if (sel) {
-          const bounds = getElementBounds(sel);
-          if (bounds && isOnResizeHandle(pos.x, pos.y, bounds)) {
-            pushToHistory(elements);
-            setDrag({ mode: 'resize', startX: pos.x, startY: pos.y });
-            return;
-          }
-          if (
-            bounds &&
-            pos.x >= bounds.x - 8 && pos.x <= bounds.x + bounds.w + 8 &&
-            pos.y >= bounds.y - 8 && pos.y <= bounds.y + bounds.h + 8
-          ) {
-            pushToHistory(elements);
-            setDrag({ mode: 'move', startX: pos.x, startY: pos.y });
-            return;
-          }
-        }
+      // Try drag / resize on the selected element first
+      if (!tryStartDrag(pos)) {
+        // No drag started — try to select a new element
+        selectAtPoint(pos.x, pos.y);
       }
-      selectAtPoint(pos.x, pos.y);
       return;
     }
 
-    if (tool === TOOLS.ERASER) {
-      startErasing();
-      eraseAtPoint(pos.x, pos.y);
-      return;
-    }
-
-    if (tool === TOOLS.TEXT) {
-      openTextInput(e, false, pos.x, pos.y);
-      return;
-    }
-
-    if (tool === TOOLS.NOTE) {
-      openTextInput(e, true, pos.x, pos.y);
-      return;
-    }
+    if (tool === TOOLS.ERASER) { startErasing(); eraseAtPoint(pos.x, pos.y); return; }
+    if (tool === TOOLS.TEXT)   { openTextInput(e, false, pos.x, pos.y); return; }
+    if (tool === TOOLS.NOTE)   { openTextInput(e, true,  pos.x, pos.y); return; }
 
     startDrawing(pos.x, pos.y);
-  }, [tool, elements, selectedId, submitText, startDrawing, selectAtPoint, eraseAtPoint, startErasing, pushToHistory]);
+  }, [canDraw, tool, elements, selectedId, submitText, tryStartDrag,
+      startDrawing, selectAtPoint, eraseAtPoint, startErasing]);
 
-  /* ── Double click — re-edit text / note ──────── */
+  /* ── Double-click — re-edit text / note ───────────────────────────────── */
   const handleDoubleClick = useCallback((e) => {
     if (tool !== TOOLS.SELECT) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const pos = getPointerPos(e, canvas);
-
-    // Find element under cursor (prefer selectedId first)
-    let target = elements.find(el => el.id === selectedId);
-    if (!target) target = hitTest(elements, pos, 8);
-    if (!target) return;
-    if (target.type !== 'text' && target.type !== 'note') return;
-
-    // Push history so the delete+re-add is one undo step
+    const pos    = getPointerPos(e, canvas);
+    const target = elements.find(el => el.id === selectedId)
+                || hitTest(elements, pos, 8);
+    if (!target || (target.type !== 'text' && target.type !== 'note')) return;
     pushToHistory(elements);
     openEditInput(e, target);
   }, [tool, elements, selectedId, pushToHistory]);
 
-  /* ── Pointer move ─────────────────────────────── */
+  /* ── Pointer move ──────────────────────────────────────────────────────── */
   const handlePointerMove = useCallback((e) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const pos = getPointerPos(e, canvas);
 
-    if (dragRef.current) {
-      const d = dragRef.current;
-      const dx = pos.x - d.startX;
-      const dy = pos.y - d.startY;
-      if (d.mode === 'move') moveElementBy(selectedId, dx, dy);
-      if (d.mode === 'resize') resizeElementBy(selectedId, dx, dy);
-      setDrag({ ...d, startX: pos.x, startY: pos.y });
-      return;
+    // Cursor broadcast — throttled at 40 ms; fires even in read-only mode
+    if (onCursorMove) {
+      const now = Date.now();
+      if (now - cursorThrottleRef.current >= 40) {
+        cursorThrottleRef.current = now;
+        onCursorMove(pos.x, pos.y);
+      }
     }
 
-    if (tool === TOOLS.ERASER) {
-      eraseAtPoint(pos.x, pos.y);
-      return;
-    }
+    if (canDraw === false) return;
 
+    // If dragging/resizing, delegate to the drag hook
+    if (handleDragMove(pos)) return;
+
+    if (tool === TOOLS.ERASER) { eraseAtPoint(pos.x, pos.y); return; }
     continueDrawing(pos.x, pos.y);
-  }, [tool, selectedId, continueDrawing, eraseAtPoint, moveElementBy, resizeElementBy]);
+  }, [canDraw, tool, selectedId, continueDrawing, eraseAtPoint,
+      handleDragMove, onCursorMove]);
 
-  /* ── Pointer up ───────────────────────────────── */
+  /* ── Pointer up ────────────────────────────────────────────────────────── */
   const handlePointerUp = useCallback(() => {
-    if (dragRef.current) {
-      setDrag(null);
-      return;
-    }
-    if (tool === TOOLS.ERASER) {
-      stopErasing();
-      return;
-    }
+    if (canDraw === false) return;
+    if (stopDrag()) return;
+    if (tool === TOOLS.ERASER) { stopErasing(); return; }
     stopDrawing();
-  }, [tool, stopDrawing, stopErasing]);
+  }, [canDraw, tool, stopDrag, stopDrawing, stopErasing]);
 
-  /* ── Focus textarea when it appears ──────────── */
-  useEffect(() => {
-    if (textInput) {
-      submittedRef.current = false;
-      setTimeout(() => {
-        const ta = document.getElementById('canvas-text-area');
-        if (ta) {
-          ta.focus();
-          // Move cursor to end of pre-filled text
-          const len = ta.value.length;
-          ta.setSelectionRange(len, len);
-        }
-      }, 20);
-    }
-  }, [textInput]);
-
-  /* ── Cursor style ─────────────────────────────── */
+  /* ── CSS cursor ────────────────────────────────────────────────────────── */
   let cursor = 'crosshair';
-  if (tool === TOOLS.TEXT || tool === TOOLS.NOTE) cursor = 'text';
-  if (tool === TOOLS.SELECT) {
-    cursor = drag
-      ? (drag.mode === 'resize' ? 'nwse-resize' : 'grabbing')
-      : 'default';
+  if (canDraw === false) {
+    cursor = 'default';
+  } else if (tool === TOOLS.TEXT || tool === TOOLS.NOTE) {
+    cursor = 'text';
+  } else if (tool === TOOLS.SELECT) {
+    cursor = dragCursor || 'default';
   }
 
   return (
@@ -303,48 +255,16 @@ export default function Canvas({
         onDoubleClick={handleDoubleClick}
       />
 
-      {textInput && (
-        <textarea
-          id="canvas-text-area"
-          className={
-            'canvas-text-input ' +
-            (textInput.isNote ? 'canvas-text-input-note' : 'canvas-text-input-text')
-          }
-          style={{
-            left: textInput.screenX,
-            top: textInput.screenY,
-            fontSize: textInput.originalElement?.fontSize || fontSize,
-            color: textInput.isNote ? '#1a1a1a' : (textInput.originalElement?.color || color),
-            backgroundColor: textInput.isNote
-              ? (textInput.bgColor || '#fef08a')
-              : 'transparent',
-          }}
-          defaultValue={textInput.originalElement?.text || ''}
-          onBlur={() => {
-            if (!submittedRef.current) submitText();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              submittedRef.current = false;
-              submitText();
-            }
-            if (e.key === 'Escape') {
-              submittedRef.current = true;
-              // If editing, restore original element
-              if (textInputRef.current?.editingId && textInputRef.current?.originalElement) {
-                const orig = textInputRef.current.originalElement;
-                if (orig.type === 'note') {
-                  addNoteElement(orig.text, orig.startX, orig.startY, orig.fontSize, orig.bgColor, orig.width, orig.height);
-                } else {
-                  addTextElement(orig.text, orig.startX, orig.startY, orig.color, orig.fontSize, orig.maxWidth);
-                }
-              }
-              setTextInput(null);
-            }
-          }}
-        />
-      )}
+      <CanvasTextOverlay
+        textInput={textInput}
+        fontSize={fontSize}
+        color={color}
+        submittedRef={submittedRef}
+        onSubmit={submitText}
+        addTextElement={addTextElement}
+        addNoteElement={addNoteElement}
+        onClose={() => setTextInput(null)}
+      />
     </div>
   );
 }

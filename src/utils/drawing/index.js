@@ -1,10 +1,16 @@
-// Barrel re-export — all drawing utils accessible from "utils/drawing"
-export { generateId } from "./idGenerator";
-export { getCachedImage, cacheImage } from "./imageCache";
-export { getPointerPos } from "./pointerUtils";
-export { drawElement } from "./drawElement";
-export { hitTest } from "./hitTest";
-export { drawSelectionHighlight, getElementBounds, isOnResizeHandle } from "./selection";
-export { drawBoxGrid } from "./grid";
-export { renderCanvas } from "./renderCanvas";
-export { exportAsPNG, exportAsPDF } from "./exportCanvas";
+// src/utils/drawing/index.js
+// Barrel re-export — all drawing utils accessible from 'utils/drawing'
+
+export { generateId }                                       from './idGenerator.js';
+export { getCachedImage, cacheImage, clearImageCache }      from './imageCache.js';
+export { getPointerPos }                                    from './pointerUtils.js';
+export { drawElement }                                      from './drawElement.js';
+export { hitTest }                                          from './hitTest.js';
+export { drawSelectionHighlight,
+         getElementBounds,
+         isOnResizeHandle }                                 from './selection.js';
+export { drawBoxGrid }                                      from './grid.js';
+export { renderCanvas }                                     from './renderCanvas.js';
+export { exportAsPNG, exportAsPDF }                         from './exportCanvas.js';
+export { drawRemoteCursors }                                from './cursors.js';
+export { wrapText }                                         from './wrapText.js';

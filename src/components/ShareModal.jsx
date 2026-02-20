@@ -1,28 +1,51 @@
+// src/components/ShareModal.jsx
+//
+// Fix: now accepts boardData and onBoardUpdate props so it doesn't fetch the
+// board a second time when Whiteboard.jsx already has it in state.
+// Falls back to fetching if boardData is not provided (backwards compatible).
+
 import { useState, useEffect } from 'react';
 import { getBoard, updateBoard } from '../firebase/boardService.js';
 
-export default function ShareModal({ boardId, onClose }) {
-  const [board, setBoard] = useState(null);
+export default function ShareModal({ boardId, boardData: initialBoardData, onBoardUpdate, onClose }) {
+  const [board,       setBoard]       = useState(initialBoardData || null);
   const [editorEmail, setEditorEmail] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [copied,      setCopied]      = useState(false);
+  const [saving,      setSaving]      = useState(false);
 
+  // Only fetch if boardData was not passed in from the parent
   useEffect(() => {
-    getBoard(boardId).then(setBoard);
-  }, [boardId]);
+    if (initialBoardData) {
+      setBoard(initialBoardData);
+      return;
+    }
+    if (boardId) {
+      getBoard(boardId).then(setBoard);
+    }
+  }, [boardId, initialBoardData]);
+
+  // Keep local state in sync when parent passes updated boardData
+  useEffect(() => {
+    if (initialBoardData) setBoard(initialBoardData);
+  }, [initialBoardData]);
 
   if (!board) return null;
 
   const isPublic = board.visibility === 'public';
-  const editors = board.editors || [];
+  const editors  = board.editors || [];
+
+  function syncBoard(updated) {
+    setBoard(updated);
+    onBoardUpdate?.(updated); // bubble change back to Whiteboard state
+  }
 
   async function toggleVisibility() {
     const newVis = isPublic ? 'private' : 'public';
     setSaving(true);
     try {
       await updateBoard(boardId, { visibility: newVis });
-      setBoard(prev => ({ ...prev, visibility: newVis }));
-    } catch (err) {
+      syncBoard({ ...board, visibility: newVis });
+    } catch {
       alert('Failed to update visibility.');
     }
     setSaving(false);
@@ -36,9 +59,9 @@ export default function ShareModal({ boardId, onClose }) {
     setSaving(true);
     try {
       await updateBoard(boardId, { editors: newEditors });
-      setBoard(prev => ({ ...prev, editors: newEditors }));
+      syncBoard({ ...board, editors: newEditors });
       setEditorEmail('');
-    } catch (err) {
+    } catch {
       alert('Failed to add editor.');
     }
     setSaving(false);
@@ -49,8 +72,8 @@ export default function ShareModal({ boardId, onClose }) {
     setSaving(true);
     try {
       await updateBoard(boardId, { editors: newEditors });
-      setBoard(prev => ({ ...prev, editors: newEditors }));
-    } catch (err) {
+      syncBoard({ ...board, editors: newEditors });
+    } catch {
       alert('Failed to remove editor.');
     }
     setSaving(false);
@@ -70,7 +93,8 @@ export default function ShareModal({ boardId, onClose }) {
           <h2>Share Board</h2>
           <button className="btn-icon" onClick={onClose}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6"  x2="6"  y2="18"/>
+              <line x1="6"  y1="6"  x2="18" y2="18"/>
             </svg>
           </button>
         </div>
@@ -115,14 +139,20 @@ export default function ShareModal({ boardId, onClose }) {
               }}>
                 {window.location.origin + '/#/view/' + boardId}
               </span>
-              <button className="btn btn-ghost" onClick={copyLink} style={{ padding: '4px 12px', fontSize: 12 }}>
+              <button
+                className="btn btn-ghost"
+                onClick={copyLink}
+                style={{ padding: '4px 12px', fontSize: 12 }}
+              >
                 {copied ? '✓ Copied' : 'Copy Link'}
               </button>
             </div>
           )}
 
           {/* Add editor */}
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx-2)', marginBottom: 8 }}>Editors</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx-2)', marginBottom: 8 }}>
+            Editors
+          </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             <input
               className="input"
@@ -163,8 +193,10 @@ export default function ShareModal({ boardId, onClose }) {
                     disabled={saving}
                     style={{ width: 28, height: 28 }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6"  x2="6"  y2="18"/>
+                      <line x1="6"  y1="6"  x2="18" y2="18"/>
                     </svg>
                   </button>
                 </div>
@@ -172,7 +204,7 @@ export default function ShareModal({ boardId, onClose }) {
             </div>
           )}
 
-          {/* Legend */}
+          {/* Permission legend */}
           <div style={{
             marginTop: 20, padding: 14,
             borderRadius: 'var(--r-md)',
@@ -183,9 +215,9 @@ export default function ShareModal({ boardId, onClose }) {
               Permission Levels
             </div>
             <div style={{ fontSize: 12, color: 'var(--tx-4)', lineHeight: 1.8 }}>
-              <div><span className="badge badge-amber" style={{ marginRight: 6 }}>Owner</span> Full control</div>
-              <div><span className="badge badge-green" style={{ marginRight: 6 }}>Editor</span> Can draw and edit</div>
-              <div><span className="badge badge-blue" style={{ marginRight: 6 }}>Public</span> View-only with link</div>
+              <div><span className="badge badge-amber" style={{ marginRight: 6 }}>Owner</span>Full control</div>
+              <div><span className="badge badge-green" style={{ marginRight: 6 }}>Editor</span>Can draw and edit</div>
+              <div><span className="badge badge-blue"  style={{ marginRight: 6 }}>Public</span>View-only with link</div>
             </div>
           </div>
         </div>
