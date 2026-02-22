@@ -1,4 +1,6 @@
 // src/firebase/boardService.js
+// v1.4: onBoardChange now passes null to callback when doc doesn't exist,
+// so WhiteboardContext can set boardMissing correctly via the real-time listener.
 
 import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc,
@@ -45,7 +47,6 @@ export async function getUserBoards(userId) {
 
 export async function getEditorBoards(userEmail) {
   if (!userEmail) return [];
-  // Always lowercase — ShareModal stores emails lowercased
   const email = userEmail.toLowerCase();
   const q     = query(collection(db, BOARDS), where('editors', 'array-contains', email));
   const snap  = await getDocs(q);
@@ -72,17 +73,7 @@ export async function updateBoard(boardId, data) {
   });
 }
 
-/* ── Delete (with cascade) ───────────────────────────────────────────────────
- *
- * Firestore does NOT auto-delete subcollections when a parent document is
- * deleted. This function deletes:
- *   1. All documents in /boards/{id}/elements
- *   2. All documents in /boards/{id}/cursors
- *   3. The board document itself
- *
- * Subcollection documents are deleted in batches of 490 to stay under
- * Firestore's 500-operations-per-batch limit.
- * ─────────────────────────────────────────────────────────────────────────── */
+/* ── Delete (with cascade) ───────────────────────────────────────────────── */
 export async function deleteBoard(boardId) {
   await deleteSubcollection(boardId, 'elements');
   await deleteSubcollection(boardId, 'cursors');
@@ -102,12 +93,17 @@ async function deleteSubcollection(boardId, subcollection) {
   }
 }
 
-// Export for use in admin panel bulk operations
 export { deleteSubcollection };
 
 /* ── Real-time listener ──────────────────────────────────────────────────── */
+// v1.4: passes null to callback when document doesn't exist (deleted/missing),
+// so callers can correctly set boardMissing state.
 export function onBoardChange(boardId, callback) {
   return onSnapshot(doc(db, BOARDS, boardId), snap => {
-    if (snap.exists()) callback({ id: snap.id, ...snap.data() });
+    if (snap.exists()) {
+      callback({ id: snap.id, ...snap.data() });
+    } else {
+      callback(null);
+    }
   });
 }

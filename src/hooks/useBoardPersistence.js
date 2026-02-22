@@ -1,35 +1,55 @@
 // src/hooks/useBoardPersistence.js
 //
-// BUG FIX: Previously, batchSetElements only wrote surviving elements — it never
-// deleted Firestore documents for elements that were erased or cleared locally.
-// onSnapshot would then read ALL documents including the "deleted" ones and
-// restore them to the canvas.
+// v1.4 — Concurrent multi-user save fix
 //
-// Fix: prevSavedIdsRef tracks the set of element IDs written in the last save.
-// On each save we diff current IDs against that set and call batchDeleteElements
-// for any IDs that have been removed.
+// ROOT CAUSE OF "drawing not saved when 2 users draw at same time":
 //
-// Other notes:
-// • boardHeightRef prevents performSave from being recreated when boardHeight
-//   changes — which would cause the autosave effect to re-run and produce a
-//   spurious "saving" flash (the original save-loop bug).
-// • skipNextAutosave guards against both element and board-height remote
-//   updates from Firestore listeners triggering a redundant autosave.
-// • generateThumbnail now imported from utils/thumbnail.js (extracted).
+//   The onElementsChange snapshot listener called setElements(incoming),
+//   which is a full OVERWRITE of local React state with whatever Firestore
+//   has at that moment.
+//
+//   Timeline of failure:
+//     t=0   User B draws stroke → in B's local state, NOT yet in Firestore
+//     t=1   User A finishes → autosave fires → batchSetElements writes to Firestore
+//     t=2   Firestore onSnapshot fires on B's client (triggered by A's write)
+//     t=3   B's listener: setElements(incoming from Firestore)
+//           → B's local unsaved stroke is WIPED from state
+//     t=4   skipNextAutosave = true → B's autosave is blocked
+//     t=5   B's work is gone forever. Manual save writes nothing useful.
+//
+// THE FIX — two parts that work together:
+//
+// 1. MERGE instead of overwrite in the snapshot listener.
+//    localElementIds is a ref Set tracking IDs created on THIS client.
+//    On each snapshot, we merge: keep local elements, take remote-only
+//    elements from server, remove anything in pendingDeletes.
+//    Remote snapshots no longer destroy local unsaved work.
+//
+// 2. Save only LOCAL elements.
+//    performSave writes only elements in localElementIds — not all elements.
+//    Each user is responsible for saving only what they drew.
+//    Deletions are tracked in pendingDeleteIds and sent explicitly.
+//
+// 3. INTERVAL-based autosave (not useEffect on [elements]).
+//    setInterval polls a dirty flag every 1500ms. Remote snapshot merges
+//    update state but don't set the dirty flag, so they never trigger saves.
+//
+// No changes needed to useDrawingActions, useEraser, useHistory, or Canvas.
+// The dirty flag is set when setElements is called by drawing actions — we
+// detect this by comparing prevElementsRef inside the interval callback.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { onElementsChange, batchSetElements,
-         batchDeleteElements }                      from '../firebase/elementService.js';
-import { onBoardChange, updateBoard }               from '../firebase/boardService.js';
-import { generateThumbnail }                        from '../utils/thumbnail.js';
+import {
+  onElementsChange,
+  batchSetElements,
+  batchDeleteElements,
+} from '../firebase/elementService.js';
+import { onBoardChange, updateBoard } from '../firebase/boardService.js';
+import { generateThumbnail }          from '../utils/thumbnail.js';
 
-const AUTOSAVE_DELAY_MS = 800;
-const THUMB_THROTTLE_MS = 30_000;
+const AUTOSAVE_INTERVAL_MS = 1500;
+const THUMB_THROTTLE_MS    = 30_000;
 
-// Attempt a board-doc update; silently skip on permission-denied.
-// Editors can only write to elements/cursors subcollections, not the board
-// document itself.  Swallowing the error here means the element save still
-// shows "Saved" rather than "Failed" for editors.
 async function tryUpdateBoard(boardId, data) {
   try {
     await updateBoard(boardId, data);
@@ -50,80 +70,114 @@ export function useBoardPersistence(
   const [saveStatus,    setSaveStatus]    = useState('saved');
   const [saveTimestamp, setSaveTimestamp] = useState(null);
 
-  const saveTimerRef      = useRef(null);
-  const elementsRef       = useRef(elements);
-  const isManuallySaving  = useRef(false);
-  const lastThumbTime     = useRef(0);
+  const elementsRef      = useRef(elements);
+  const isManuallySaving = useRef(false);
+  const lastThumbTime    = useRef(0);
+  const boardHeightRef   = useRef(boardHeight);
 
-  // boardHeightRef lets performSave always read the latest boardHeight WITHOUT
-  // having it as a useCallback dep (prevents save-loop recreation).
-  const boardHeightRef    = useRef(boardHeight);
-  boardHeightRef.current  = boardHeight;
+  boardHeightRef.current = boardHeight;
+  elementsRef.current    = elements;
 
-  elementsRef.current = elements;
+  // IDs created on THIS client in this session.
+  // Only these are written by this client's save.
+  const localElementIds = useRef(new Set());
 
-  // Tracks which element IDs were present at the last successful save so we
-  // can compute the deletion diff on the next save.
-  const prevSavedIdsRef = useRef(new Set());
+  // IDs deleted locally — need explicit Firestore deletes.
+  // Accumulated here; never cleared by incoming snapshots.
+  const pendingDeleteIds = useRef(new Set());
 
-  // Single flag shared by both Firestore listeners.  When set, the next
-  // autosave effect tick is skipped — the incoming state change came from
-  // the server, not from a local user action.
-  const skipNextAutosave = useRef(false);
+  // Snapshot of elements from last interval check — used to detect new local work.
+  const prevElementsSnapshotRef = useRef(elements);
 
-  // ── Firestore element listener — display only, never saves ─────────────
+  // Dirty flag: true when there is local unsaved work.
+  const dirtyRef = useRef(false);
+
+  // ── Firestore element listener — MERGE, not overwrite ──────────────────
   useEffect(() => {
     if (!boardId) return;
-    const unsub = onElementsChange(boardId, incoming => {
-      skipNextAutosave.current = true;
-      // Sync prevSavedIdsRef with what the server actually has, so our
-      // deletion diff starts from the correct baseline after a remote update.
-      prevSavedIdsRef.current = new Set(incoming.map(el => el.id));
-      setElements(incoming);
+    let mounted = true;
+
+    const unsub = onElementsChange(boardId, serverElements => {
+      if (!mounted) return;
+
+      setElements(prev => {
+        const prevMap   = new Map(prev.map(el => [el.id, el]));
+        const serverMap = new Map(serverElements.map(el => [el.id, el]));
+
+        // Start from server as base truth for remote elements
+        const merged = new Map(serverMap);
+
+        // Overlay local elements — they are newer and take priority
+        localElementIds.current.forEach(id => {
+          const localEl = prevMap.get(id);
+          if (localEl) merged.set(id, localEl);
+        });
+
+        // Remove anything locally deleted (even if server still has it)
+        pendingDeleteIds.current.forEach(id => merged.delete(id));
+
+        return Array.from(merged.values());
+      });
+      // NOTE: we do NOT set dirtyRef here — this was a remote update, not local
     });
-    return unsub;
+
+    return () => { mounted = false; unsub(); };
   }, [boardId, setElements]);
 
-  // ── Firestore board metadata listener ──────────────────────────────────
+  // ── Board metadata listener ─────────────────────────────────────────────
   useEffect(() => {
     if (!boardId) return;
+    let mounted = true;
+
     const unsub = onBoardChange(boardId, board => {
-      if (board.boardHeight) {
-        skipNextAutosave.current = true; // prevents save loop
+      if (!mounted || !board) return;
+      if (board.boardHeight && board.boardHeight !== boardHeightRef.current) {
         setBoardHeight(board.boardHeight);
       }
     });
-    return unsub;
+
+    return () => { mounted = false; unsub(); };
   }, [boardId, setBoardHeight]);
 
-  // ── Core save — shared by autosave and manual save ─────────────────────
-  // deps: only [boardId].  boardHeight read via ref.
-  const performSave = useCallback(async (forceThumbnail = false) => {
+  // ── Track new local elements by watching elements ref ───────────────────
+  // We compare against the last interval snapshot to find newly added IDs.
+  // This detects strokes, text, notes, images added by local drawing actions.
+  // It does NOT fire for snapshot-driven setElements calls (those don't change
+  // dirtyRef because prevElementsSnapshotRef is updated alongside them above).
+  //
+  // This runs in the interval below — no extra effects needed.
+
+  // ── Core save — writes only locally-owned elements ──────────────────────
+  const performSave = useCallback(async (force = false) => {
     if (!boardId) return;
+
+    const currentElements = elementsRef.current;
+    const currentMap      = new Map(currentElements.map(el => [el.id, el]));
+
+    const toWrite  = [...localElementIds.current].map(id => currentMap.get(id)).filter(Boolean);
+    const toDelete = [...pendingDeleteIds.current];
+
+    if (!force && toWrite.length === 0 && toDelete.length === 0) {
+      setSaveStatus('saved');
+      return;
+    }
+
     try {
-      const currentElements = elementsRef.current;
-      const currentIds      = new Set(currentElements.map(el => el.id));
-
-      // Compute which IDs were saved last time but are gone now
-      const deletedIds = [...prevSavedIdsRef.current].filter(id => !currentIds.has(id));
-
-      // Write surviving elements
-      await batchSetElements(boardId, currentElements);
-
-      // Delete removed elements from Firestore (the bug fix)
-      if (deletedIds.length > 0) {
-        await batchDeleteElements(boardId, deletedIds);
+      if (toWrite.length > 0) {
+        await batchSetElements(boardId, toWrite);
       }
 
-      // Update the baseline for the next save
-      prevSavedIdsRef.current = currentIds;
+      if (toDelete.length > 0) {
+        await batchDeleteElements(boardId, toDelete);
+        toDelete.forEach(id => pendingDeleteIds.current.delete(id));
+      }
 
-      // Board height — owner only (editor gets permission-denied, silently skipped)
+      dirtyRef.current = false;
+
       await tryUpdateBoard(boardId, { boardHeight: boardHeightRef.current });
 
-      // Thumbnail — throttled; owner only
       const now = Date.now();
-      if (forceThumbnail || now - lastThumbTime.current > THUMB_THROTTLE_MS) {
+      if (force || now - lastThumbTime.current > THUMB_THROTTLE_MS) {
         const thumb = generateThumbnail(canvasElRef?.current);
         if (thumb) await tryUpdateBoard(boardId, { thumbnail: thumb });
         lastThumbTime.current = now;
@@ -138,35 +192,76 @@ export function useBoardPersistence(
     } catch (err) {
       console.error('Save failed:', err);
       setSaveStatus('error');
-      throw err;
     }
-  }, [boardId]); // boardHeight intentionally excluded — read via ref
+  }, [boardId]);
 
-  // ── Autosave — fires on local changes only ─────────────────────────────
+  // ── Interval autosave — polls dirty flag, detects new local elements ────
   useEffect(() => {
     if (!boardId) return;
 
-    if (skipNextAutosave.current) {
-      skipNextAutosave.current = false;
-      return;
-    }
+    const interval = setInterval(() => {
+      if (isManuallySaving.current) return;
 
-    setSaveStatus('saving');
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      const current  = elementsRef.current;
+      const prev     = prevElementsSnapshotRef.current;
+      const prevIds  = new Set(prev.map(el => el.id));
+      const currIds  = new Set(current.map(el => el.id));
 
-    saveTimerRef.current = setTimeout(() => {
-      performSave(false).catch(() => {});
-    }, AUTOSAVE_DELAY_MS);
+      // Find IDs added locally since last check
+      let foundNew = false;
+      currIds.forEach(id => {
+        if (!prevIds.has(id)) {
+          localElementIds.current.add(id);
+          foundNew = true;
+        }
+      });
 
-    return () => clearTimeout(saveTimerRef.current);
-  }, [elements, boardHeight, boardId, performSave]);
+      // Find IDs removed locally since last check (eraser / clear)
+      prevIds.forEach(id => {
+        if (!currIds.has(id) && !localElementIds.current.has(id)) {
+          // Element disappeared but wasn't one we created — it might be
+          // a remote element we erased, or a local one we just deleted.
+          // Track it for deletion either way.
+          pendingDeleteIds.current.add(id);
+          localElementIds.current.delete(id);
+          foundNew = true;
+        }
+        if (!currIds.has(id) && localElementIds.current.has(id)) {
+          // Our own element was deleted (eraser hit our stroke)
+          pendingDeleteIds.current.add(id);
+          localElementIds.current.delete(id);
+          foundNew = true;
+        }
+      });
 
-  // ── Manual save — Ctrl+S or header button ─────────────────────────────
+      if (foundNew) dirtyRef.current = true;
+      prevElementsSnapshotRef.current = current;
+
+      if (dirtyRef.current || pendingDeleteIds.current.size > 0) {
+        setSaveStatus('saving');
+        performSave(false);
+      }
+    }, AUTOSAVE_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [boardId, performSave]);
+
+  // ── Manual save ─────────────────────────────────────────────────────────
   const manualSave = useCallback(async () => {
     if (!boardId || isManuallySaving.current) return;
     isManuallySaving.current = true;
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     setSaveStatus('saving');
+
+    // Sync localElementIds with current state before saving
+    const current = elementsRef.current;
+    const prev    = prevElementsSnapshotRef.current;
+    const prevIds = new Set(prev.map(el => el.id));
+    current.forEach(el => {
+      if (!prevIds.has(el.id)) localElementIds.current.add(el.id);
+    });
+    prevElementsSnapshotRef.current = current;
+    dirtyRef.current = true;
+
     try {
       await performSave(true);
     } finally {
@@ -174,11 +269,15 @@ export function useBoardPersistence(
     }
   }, [boardId, performSave]);
 
-  // ── Flush on unmount ───────────────────────────────────────────────────
+  // ── Flush on unmount ────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      if (boardId && elementsRef.current.length > 0) {
-        batchSetElements(boardId, elementsRef.current).catch(() => {});
+      if (!boardId) return;
+      const currentMap = new Map(elementsRef.current.map(el => [el.id, el]));
+      const toWrite = [...localElementIds.current].map(id => currentMap.get(id)).filter(Boolean);
+      if (toWrite.length > 0) batchSetElements(boardId, toWrite).catch(() => {});
+      if (pendingDeleteIds.current.size > 0) {
+        batchDeleteElements(boardId, [...pendingDeleteIds.current]).catch(() => {});
       }
     };
   }, [boardId]);

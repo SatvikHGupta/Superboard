@@ -1,4 +1,9 @@
 // src/components/admin/AdminBoardsTab.jsx
+// v1.4:
+// • Removed all browser confirm() calls — confirmations now handled by
+//   the ConfirmModal in AdminPage (2-step confirm pattern)
+// • Added "Delete All Boards" danger button in toolbar
+// • onDeleteAllBoards prop wired to the nuclear option in AdminPage
 
 import { useState } from 'react';
 
@@ -8,20 +13,19 @@ export default function AdminBoardsTab({
   onToggleVisibility,
   onBulkDelete,
   onBulkToggleVisibility,
+  onDeleteAllBoards,
   onViewBoard,
   formatRelativeTime,
 }) {
-  const [searchQuery,       setSearchQuery]       = useState('');
-  const [filterVisibility,  setFilterVisibility]  = useState('all');
-  const [selectedBoards,    setSelectedBoards]    = useState([]);
-  const [viewMode,          setViewMode]          = useState('grid');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deleteTarget,      setDeleteTarget]      = useState(null);
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [filterVisibility, setFilterVisibility] = useState('all');
+  const [selectedBoards,   setSelectedBoards]   = useState([]);
+  const [viewMode,         setViewMode]         = useState('grid');
 
   const filteredBoards = boards.filter(board => {
     const matchesSearch =
-      board.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      board.ownerEmail.toLowerCase().includes(searchQuery.toLowerCase());
+      board.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      board.ownerEmail?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter =
       filterVisibility === 'all' || board.visibility === filterVisibility;
     return matchesSearch && matchesFilter;
@@ -45,19 +49,6 @@ export default function AdminBoardsTab({
     onBulkToggleVisibility(selectedBoards, vis, () => setSelectedBoards([]));
   }
 
-  function promptDelete(id) {
-    setDeleteTarget(id);
-    setShowDeleteConfirm(true);
-  }
-
-  function confirmDelete() {
-    if (deleteTarget) {
-      onDeleteBoard(deleteTarget);
-    }
-    setShowDeleteConfirm(false);
-    setDeleteTarget(null);
-  }
-
   return (
     <div className="admin-boards">
       {/* Toolbar */}
@@ -65,8 +56,7 @@ export default function AdminBoardsTab({
         <div className="toolbar-left">
           <div className="search-box">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
             <input
               type="text"
@@ -77,8 +67,7 @@ export default function AdminBoardsTab({
             {searchQuery && (
               <button className="search-clear" onClick={() => setSearchQuery('')}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             )}
@@ -98,7 +87,7 @@ export default function AdminBoardsTab({
         </div>
 
         <div className="toolbar-right">
-          {selectedBoards.length > 0 && (
+          {selectedBoards.length > 0 ? (
             <>
               <span className="selection-count">{selectedBoards.length} selected</span>
               <button className="btn btn-ghost" onClick={() => handleBulkToggle('public')}>Make Public</button>
@@ -106,8 +95,25 @@ export default function AdminBoardsTab({
               <button className="btn btn-danger" onClick={handleBulkDelete}>Delete Selected</button>
               <button className="btn btn-ghost" onClick={() => setSelectedBoards([])}>Clear</button>
             </>
+          ) : (
+            /* Delete All — only shown when no selection */
+            boards.length > 0 && (
+              <button
+                className="btn btn-danger"
+                onClick={onDeleteAllBoards}
+                style={{ fontSize: 12, padding: '6px 12px' }}
+                title="Delete every board in the database"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 5 }}>
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                </svg>
+                Delete All
+              </button>
+            )
           )}
-          {['grid','list'].map(mode => (
+
+          {['grid', 'list'].map(mode => (
             <button
               key={mode}
               className={'view-toggle' + (viewMode === mode ? ' active' : '')}
@@ -174,6 +180,19 @@ export default function AdminBoardsTab({
                   <span className={'visibility-badge badge-' + (board.visibility === 'public' ? 'green' : 'amber')}>
                     {board.visibility}
                   </span>
+                  {/* Editor count */}
+                  {Array.isArray(board.editors) && board.editors.length > 0 && (
+                    <span style={{
+                      position: 'absolute', bottom: 6, right: 6,
+                      fontSize: 10, color: 'var(--a-light)',
+                      background: 'rgba(99,102,241,0.18)',
+                      border: '1px solid rgba(99,102,241,0.3)',
+                      borderRadius: 'var(--r-full)',
+                      padding: '1px 6px',
+                    }}>
+                      {board.editors.length} editor{board.editors.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
 
                 <div className="board-card-body">
@@ -201,7 +220,7 @@ export default function AdminBoardsTab({
                   </button>
                   <button
                     className="action-btn-small action-delete"
-                    onClick={() => promptDelete(board.id)}
+                    onClick={() => onDeleteBoard(board.id)}
                     title="Delete"
                   >
                     🗑️
@@ -231,6 +250,7 @@ export default function AdminBoardsTab({
                   <th>Board</th>
                   <th>Owner</th>
                   <th>Visibility</th>
+                  <th>Editors</th>
                   <th>Updated</th>
                   <th>Actions</th>
                 </tr>
@@ -273,14 +293,18 @@ export default function AdminBoardsTab({
                         {board.visibility}
                       </span>
                     </td>
+                    <td>
+                      <span style={{ fontSize: 13, color: 'var(--tx-3)' }}>
+                        {Array.isArray(board.editors) ? board.editors.length : 0}
+                      </span>
+                    </td>
                     <td className="table-date">{formatRelativeTime(board.updatedAt)}</td>
                     <td>
                       <div className="table-actions">
                         <button className="btn-icon" onClick={() => onToggleVisibility(board.id, board.visibility)} title="Toggle visibility">
                           {board.visibility === 'public' ? (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="11" width="18" height="11" rx="2"/>
-                              <path d="M7 11V7a5 5 0 0110 0v4"/>
+                              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
                             </svg>
                           ) : (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -294,7 +318,7 @@ export default function AdminBoardsTab({
                             <circle cx="12" cy="12" r="3"/>
                           </svg>
                         </button>
-                        <button className="btn-icon btn-danger" onClick={() => promptDelete(board.id)} title="Delete">
+                        <button className="btn-icon btn-danger" onClick={() => onDeleteBoard(board.id)} title="Delete">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
@@ -309,32 +333,6 @@ export default function AdminBoardsTab({
           </div>
         )}
       </div>
-
-      {/* Delete confirmation modal */}
-      {showDeleteConfirm && (
-        <div className="modal-backdrop" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="modal-content modal-sm" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Confirm Deletion</h2>
-              <button className="btn-icon" onClick={() => setShowDeleteConfirm(false)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p style={{ marginBottom: 20, color: 'var(--tx-2)' }}>
-                Are you sure you want to permanently delete this board? This action cannot be undone.
-              </p>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn btn-ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-                <button className="btn btn-danger" onClick={confirmDelete}>Delete Permanently</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

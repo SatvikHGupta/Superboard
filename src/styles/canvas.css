@@ -1,5 +1,9 @@
 /* ========================================
    CANVAS & WHITEBOARD STYLES — Superboard
+   v1.4: Added scale-to-fit for small screens via CSS transform.
+   The canvas itself stays at its true logical size (boardWidth × boardHeight),
+   but the .canvas-scale-wrapper shrinks it with transform: scale() so it fits
+   the available viewport without horizontal scroll on small devices.
    ======================================== */
 
 /* ---- Whiteboard Layout ---- */
@@ -21,13 +25,21 @@
   background: var(--bg-1);
 }
 
+/* ---- Scale wrapper — applied by JS when board is wider than viewport ---- */
+/* The JS in Whiteboard.jsx sets --canvas-scale on this element.             */
+.canvas-scale-wrapper {
+  transform-origin: top center;
+  transform: scale(var(--canvas-scale, 1));
+  /* When scaling down, the element's layout box stays at original size,
+     so we compensate height to avoid excess scroll. This is set inline. */
+}
+
 /* ---- Canvas Wrapper ---- */
 .canvas-wrapper {
   position: relative;
   display: inline-block;
   min-width: max-content;
   margin: auto;
-  /* Prevent browser scroll/zoom hijacking touch on canvas */
   touch-action: none;
 }
 
@@ -35,7 +47,6 @@
   display: block;
   border-radius: var(--r-lg);
   box-shadow: var(--sh-lg);
-  /* Prevent context menu on long-press mobile */
   -webkit-touch-callout: none;
 }
 
@@ -53,7 +64,6 @@
   resize: both;
   overflow: auto;
   box-shadow: 0 0 12px var(--a-glow);
-  /* Must be above canvas but below modals */
   z-index: 15;
 }
 
@@ -152,6 +162,9 @@
     padding-bottom: 68px; /* clear bottom toolbar */
     align-items: flex-start;
     justify-content: flex-start;
+    /* Allow vertical scroll so board can be scrolled after scale */
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .wb-header {
@@ -163,7 +176,6 @@
     max-width: 110px;
   }
 
-  /* Shift extend button above mobile toolbar */
   .extend-btn {
     bottom: 68px;
     right: 12px;
@@ -171,9 +183,14 @@
     padding: 8px 12px;
   }
 
-  /* Text input on mobile — wider min size for finger use */
   .canvas-text-input {
     min-width: 160px;
     font-size: 16px !important; /* Prevent iOS zoom on focus */
+  }
+
+  /* On small screens, center the scale wrapper and allow natural height */
+  .canvas-scale-wrapper {
+    transform-origin: top left;
+    margin: 0 auto;
   }
 }

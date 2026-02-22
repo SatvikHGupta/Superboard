@@ -1,10 +1,13 @@
 // src/hooks/useWhiteboard.js
+// v1.4: markLocal from useBoardPersistence is passed to useDrawingActions,
+// useEraser, and useHistory so every local element mutation is tracked for save.
+
 import { useState, useCallback, useRef } from 'react';
-import { DEFAULTS } from '../constants/defaults.js';
-import { useHistory }        from './useHistory.js';
-import { useSelection }      from './useSelection.js';
-import { useEraser }         from './useEraser.js';
-import { useDrawingActions } from './useDrawingActions.js';
+import { DEFAULTS }            from '../constants/defaults.js';
+import { useHistory }          from './useHistory.js';
+import { useSelection }        from './useSelection.js';
+import { useEraser }           from './useEraser.js';
+import { useDrawingActions }   from './useDrawingActions.js';
 import { useBoardPersistence } from './useBoardPersistence.js';
 
 export function useWhiteboard(boardId) {
@@ -17,20 +20,25 @@ export function useWhiteboard(boardId) {
   const [boardHeight, setBoardHeight] = useState(DEFAULTS.boardHeight);
   const [selectedId,  setSelectedId]  = useState(null);
 
-  const boardWidth  = DEFAULTS.boardWidth;
-  const canvasElRef = useRef(null);
-  const elementsRef = useRef(elements);
+  const boardWidth    = DEFAULTS.boardWidth;
+  const canvasElRef   = useRef(null);
+  const elementsRef   = useRef(elements);
   elementsRef.current = elements;
 
-  // ─── Sub-hooks ───────────────────────────────────────────────────────
+  // Persistence initialised first so markLocal is available for sub-hooks
+  const { saveStatus, saveTimestamp, manualSave, markLocal } = useBoardPersistence(
+    boardId, elements, setElements,
+    boardHeight, setBoardHeight, canvasElRef,
+  );
+
   const { pushToHistory, undo, redo, clearAll, canUndo, canRedo } =
-    useHistory(setElements, setSelectedId);
+    useHistory(setElements, setSelectedId, markLocal);
 
   const { selectAtPoint, deleteSelected, moveElementBy, resizeElementBy } =
     useSelection(setElements, selectedId, setSelectedId, pushToHistory);
 
   const { startErasing, eraseAtPoint, stopErasing } =
-    useEraser(setElements, pushToHistory);
+    useEraser(setElements, pushToHistory, markLocal);
 
   const {
     isDrawing, currentElement,
@@ -38,48 +46,27 @@ export function useWhiteboard(boardId) {
     addTextElement, addNoteElement, addImageElement, addPastedText,
   } = useDrawingActions(
     setElements, elementsRef, pushToHistory,
-    tool, color, strokeWidth, fontSize, setSelectedId
+    tool, color, strokeWidth, fontSize, setSelectedId,
+    markLocal,
   );
 
-  // ─── Persistence ─────────────────────────────────────────────────────
-  const { saveStatus, saveTimestamp, manualSave } = useBoardPersistence(
-    boardId, elements, setElements,
-    boardHeight, setBoardHeight, canvasElRef
-  );
-
-  // ─── Board controls ───────────────────────────────────────────────────
-  const extendBoard = useCallback(() => {
-    setBoardHeight(h => h + DEFAULTS.extendAmount);
-  }, []);
-
-  const toggleGrid = useCallback(() => {
-    setShowGrid(g => !g);
-  }, []);
+  const extendBoard = useCallback(() => setBoardHeight(h => h + DEFAULTS.extendAmount), []);
+  const toggleGrid  = useCallback(() => setShowGrid(g => !g), []);
 
   return {
-    // State
     elements, tool, color, strokeWidth, fontSize,
     isDrawing, currentElement, showGrid,
     boardWidth, boardHeight, canvasElRef, selectedId,
     setElements, saveStatus, saveTimestamp,
 
-    // Setters
     setTool, setColor, setStrokeWidth, setFontSize, setSelectedId,
 
-    // Drawing
     startDrawing, continueDrawing, stopDrawing,
     addTextElement, addNoteElement, addImageElement, addPastedText,
 
-    // Selection
     selectAtPoint, deleteSelected, moveElementBy, resizeElementBy,
-
-    // Eraser
     startErasing, eraseAtPoint, stopErasing,
-
-    // History
     pushToHistory, undo, redo, clearAll, canUndo, canRedo,
-
-    // Board
     extendBoard, toggleGrid, manualSave,
   };
 }

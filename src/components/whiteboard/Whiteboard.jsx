@@ -1,4 +1,10 @@
 // src/components/whiteboard/Whiteboard.jsx
+// v1.4: Added scale-to-fit for small screens.
+// A ResizeObserver watches the <main> container. When it is narrower than
+// boardWidth, scale = containerWidth / boardWidth (≤1) is passed to Canvas.
+// Canvas applies it directly to canvas.style.width/height so the layout box
+// matches the visual size. getPointerPos uses getBoundingClientRect() which
+// returns the scaled CSS size — coordinates are correct automatically.
 
 import { useState, useEffect, useRef }    from 'react';
 import { TOOLS }                           from '../../constants/tools.js';
@@ -13,6 +19,8 @@ import Canvas                              from '../Canvas.jsx';
 import ShortcutsModal                      from '../ShortcutsModal.jsx';
 import ShareModal                          from '../ShareModal.jsx';
 
+const MAIN_PADDING = 40; // horizontal padding inside .whiteboard-main
+
 function WhiteboardInner({ onBack }) {
   const {
     wb, boardId, boardData, setBoardData, boardLoading, boardMissing,
@@ -23,6 +31,29 @@ function WhiteboardInner({ onBack }) {
 
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showShare,     setShowShare]     = useState(false);
+  const [scale,         setScale]         = useState(1);
+
+  const mainRef = useRef(null);
+
+  // ── Scale-to-fit ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+
+    function compute() {
+      const available = el.clientWidth - MAIN_PADDING;
+      if (available > 0 && wb.boardWidth > available) {
+        setScale(Math.round((available / wb.boardWidth) * 1000) / 1000);
+      } else {
+        setScale(1);
+      }
+    }
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [wb.boardWidth]);
 
   const prevToolRef = useRef(wb.tool);
   useEffect(() => {
@@ -174,7 +205,7 @@ function WhiteboardInner({ onBack }) {
         canDraw={canDraw}
       />
 
-      <main className="whiteboard-main">
+      <main className="whiteboard-main" ref={mainRef}>
         <Canvas
           elements={wb.elements}
           currentElement={wb.currentElement}
@@ -203,6 +234,7 @@ function WhiteboardInner({ onBack }) {
           remoteCursors={remoteCursors}
           onCursorMove={onCursorMove}
           canDraw={canDraw}
+          scale={scale}
         />
       </main>
 

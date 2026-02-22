@@ -1,86 +1,87 @@
 // src/hooks/useHistory.js
-//
-// BUG FIX: canUndo / canRedo were previously derived from ref.current values.
-// Since refs don't trigger re-renders, those boolean values were always stale —
-// the Undo / Redo buttons in WhiteboardHeader never updated their disabled
-// state correctly after an undo or redo operation.
-//
-// Fix: track stack depth in useState so React re-renders whenever the stacks
-// change.  The actual history arrays stay in refs (no serialisation cost),
-// and we only use state for the depth numbers that drive the UI.
+// v1.4: markLocal passed in to track element additions/deletions through
+// undo/redo/clearAll operations.
 
 import { useCallback, useRef, useState } from 'react';
 
 const MAX_HISTORY = 60;
 
-export function useHistory(setElements, setSelectedId) {
+export function useHistory(setElements, setSelectedId, markLocal) {
   const pastRef   = useRef([]);
   const futureRef = useRef([]);
 
-  // State-backed depth counters — these drive canUndo / canRedo in the UI
   const [undoDepth, setUndoDepth] = useState(0);
   const [redoDepth, setRedoDepth] = useState(0);
 
-  /* ── Push a snapshot onto the undo stack ─────────────────────────────── */
   const pushToHistory = useCallback((snapshot) => {
-    pastRef.current = [
-      ...pastRef.current.slice(-(MAX_HISTORY - 1)),
-      snapshot,
-    ];
+    pastRef.current   = [...pastRef.current.slice(-(MAX_HISTORY - 1)), snapshot];
     futureRef.current = [];
     setUndoDepth(pastRef.current.length);
     setRedoDepth(0);
   }, []);
 
-  /* ── Undo ────────────────────────────────────────────────────────────── */
   const undo = useCallback(() => {
-    if (pastRef.current.length === 0) return;
-
+    if (!pastRef.current.length) return;
     const previous = pastRef.current[pastRef.current.length - 1];
     pastRef.current = pastRef.current.slice(0, -1);
 
     setElements(prev => {
       futureRef.current = [...futureRef.current, prev];
       setRedoDepth(futureRef.current.length);
+
+      // Update local ownership tracking
+      if (markLocal) {
+        const prevIds = new Set(prev.map(e => e.id));
+        const nextIds = new Set(previous.map(e => e.id));
+        // Elements removed by undo → mark for deletion
+        prevIds.forEach(id => { if (!nextIds.has(id)) markLocal.delete(id); });
+        // Elements restored by undo → mark as local so they get saved
+        nextIds.forEach(id => { if (!prevIds.has(id)) markLocal.restore(id); });
+      }
+
       return previous;
     });
 
     setUndoDepth(pastRef.current.length);
     setSelectedId(null);
-  }, [setElements, setSelectedId]);
+  }, [setElements, setSelectedId, markLocal]);
 
-  /* ── Redo ────────────────────────────────────────────────────────────── */
   const redo = useCallback(() => {
-    if (futureRef.current.length === 0) return;
-
+    if (!futureRef.current.length) return;
     const next = futureRef.current[futureRef.current.length - 1];
     futureRef.current = futureRef.current.slice(0, -1);
 
     setElements(prev => {
       pastRef.current = [...pastRef.current, prev];
       setUndoDepth(pastRef.current.length);
+
+      if (markLocal) {
+        const prevIds = new Set(prev.map(e => e.id));
+        const nextIds = new Set(next.map(e => e.id));
+        prevIds.forEach(id => { if (!nextIds.has(id)) markLocal.delete(id); });
+        nextIds.forEach(id => { if (!prevIds.has(id)) markLocal.restore(id); });
+      }
+
       return next;
     });
 
     setRedoDepth(futureRef.current.length);
     setSelectedId(null);
-  }, [setElements, setSelectedId]);
+  }, [setElements, setSelectedId, markLocal]);
 
-  /* ── Clear all (with undo support) ──────────────────────────────────── */
   const clearAll = useCallback(() => {
     setElements(prev => {
-      if (prev.length === 0) return prev;
+      if (!prev.length) return prev;
       pushToHistory(prev);
+      // Mark every element as pending deletion
+      if (markLocal) prev.forEach(el => markLocal.delete(el.id));
       return [];
     });
     setSelectedId(null);
-  }, [setElements, setSelectedId, pushToHistory]);
+  }, [setElements, setSelectedId, pushToHistory, markLocal]);
 
   return {
-    pushToHistory,
-    undo,
-    redo,
-    clearAll,
+    pushToHistory, undo, redo, clearAll,
     canUndo: undoDepth > 0,
     canRedo: redoDepth > 0,
   };

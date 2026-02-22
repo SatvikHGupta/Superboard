@@ -1,16 +1,16 @@
 // src/components/Canvas.jsx
+// v1.4: Added `scale` prop (default 1) for viewport fit on small screens.
 //
-// Responsibilities (after refactor):
-//   1. DPR-aware canvas sizing
-//   2. RAF render loop (delegates cursor drawing to utils/drawing/cursors.js)
-//   3. Pointer event routing — delegates drag/resize to useCanvasDrag,
-//      text overlay lifecycle to CanvasTextOverlay
-//   4. Cursor broadcast throttle (40 ms)
+// How scaling works without breaking pointer coordinates:
+//   Pixel buffer:         boardWidth*dpr  ×  boardHeight*dpr  (always full res)
+//   CSS display size:     boardWidth*scale × boardHeight*scale
 //
-// What moved out:
-//   • Remote cursor drawing  → utils/drawing/cursors.js
-//   • Drag / resize machine  → hooks/useCanvasDrag.js
-//   • Textarea overlay JSX   → components/CanvasTextOverlay.jsx
+//   getPointerPos reads getBoundingClientRect() → returns CSS display size.
+//   It computes scaleX = logicalW / rect.width = boardWidth / (boardWidth*scale) = 1/scale.
+//   So pointer → canvas coordinate conversion is automatically correct.
+//   No extra math needed anywhere.
+//
+// All other logic is identical to v1.3.
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { TOOLS }                from '../constants/tools.js';
@@ -32,51 +32,43 @@ export default function Canvas({
   deleteElementById,
   canvasElRef,
   remoteCursors,
-  onCursorMove, // (x, y) => void — fires even in read-only so viewers appear
-  canDraw,      // boolean — false = viewer: no drawing, toolbar disabled
+  onCursorMove,
+  canDraw,
+  scale = 1,  // NEW: viewport fit scale, 0 < scale ≤ 1
 }) {
   const canvasRef = useRef(null);
   const rafRef    = useRef(null);
 
-  // ── Text overlay state ──────────────────────────────────────────────────
   const [textInput, setTextInput] = useState(null);
   const submittedRef  = useRef(false);
   const textInputRef  = useRef(textInput);
   textInputRef.current = textInput;
 
-  // ── Remote cursors ref (fresh data for RAF without adding to dep array) ─
   const remoteCursorsRef = useRef(remoteCursors);
   remoteCursorsRef.current = remoteCursors;
 
-  // ── Cursor broadcast throttle — max 25 broadcasts / sec ────────────────
   const cursorThrottleRef = useRef(0);
 
-  // ── Drag / resize hook ──────────────────────────────────────────────────
-  const { dragRef, tryStartDrag, handleDragMove, stopDrag, dragCursor } =
+  const { tryStartDrag, handleDragMove, stopDrag, dragCursor } =
     useCanvasDrag({ elements, selectedId, moveElementBy, resizeElementBy, pushToHistory });
 
-  // Assign both the local ref and the forwarded parent canvasElRef
   function setCanvasRef(el) {
     canvasRef.current = el;
     if (canvasElRef) canvasElRef.current = el;
   }
 
-  /* ── Canvas sizing (DPR-aware) ─────────────────────────────────────────── */
+  /* ── Canvas sizing — pixel buffer full res, CSS size scaled ───────────── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
     canvas.width        = boardWidth  * dpr;
     canvas.height       = boardHeight * dpr;
-    canvas.style.width  = boardWidth  + 'px';
-    canvas.style.height = boardHeight + 'px';
-  }, [boardWidth, boardHeight]);
+    canvas.style.width  = (boardWidth  * scale) + 'px';
+    canvas.style.height = (boardHeight * scale) + 'px';
+  }, [boardWidth, boardHeight, scale]);
 
-  /* ── RAF render loop ───────────────────────────────────────────────────────
-   * remoteCursors is intentionally excluded from deps — the loop reads
-   * remoteCursorsRef.current so it always has fresh cursor data without
-   * rescheduling RAF on every cursor update from other users (up to 25/sec).
-   */
+  /* ── RAF render loop ───────────────────────────────────────────────────── */
   useEffect(() => {
     function draw() {
       const canvas = canvasRef.current;
@@ -96,7 +88,6 @@ export default function Canvas({
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elements, currentElement, selectedId, showGrid, boardWidth, boardHeight]);
-  // remoteCursors deliberately omitted — see note above
 
   /* ── Submit text / note ────────────────────────────────────────────────── */
   const submitText = useCallback(() => {
@@ -108,7 +99,6 @@ export default function Canvas({
     const val = ta ? ta.value : '';
 
     if (!val.trim()) {
-      // Empty — restore original element if editing an existing one
       if (ti.editingId && ti.originalElement) {
         const o = ti.originalElement;
         if (ti.isNote) addNoteElement(o.text, o.startX, o.startY, o.fontSize, o.bgColor, o.width, o.height);
@@ -163,19 +153,14 @@ export default function Canvas({
     canvas.setPointerCapture(e.pointerId);
     const pos = getPointerPos(e, canvas);
 
-    // Commit any in-progress text input first
     if (textInputRef.current) {
       submittedRef.current = false;
       submitText();
-      return; // don't process pointer further until text is committed
+      return;
     }
 
     if (tool === TOOLS.SELECT) {
-      // Try drag / resize on the selected element first
-      if (!tryStartDrag(pos)) {
-        // No drag started — try to select a new element
-        selectAtPoint(pos.x, pos.y);
-      }
+      if (!tryStartDrag(pos)) selectAtPoint(pos.x, pos.y);
       return;
     }
 
@@ -187,7 +172,7 @@ export default function Canvas({
   }, [canDraw, tool, elements, selectedId, submitText, tryStartDrag,
       startDrawing, selectAtPoint, eraseAtPoint, startErasing]);
 
-  /* ── Double-click — re-edit text / note ───────────────────────────────── */
+  /* ── Double-click ──────────────────────────────────────────────────────── */
   const handleDoubleClick = useCallback((e) => {
     if (tool !== TOOLS.SELECT) return;
     const canvas = canvasRef.current;
@@ -206,7 +191,6 @@ export default function Canvas({
     if (!canvas) return;
     const pos = getPointerPos(e, canvas);
 
-    // Cursor broadcast — throttled at 40 ms; fires even in read-only mode
     if (onCursorMove) {
       const now = Date.now();
       if (now - cursorThrottleRef.current >= 40) {
@@ -216,10 +200,7 @@ export default function Canvas({
     }
 
     if (canDraw === false) return;
-
-    // If dragging/resizing, delegate to the drag hook
     if (handleDragMove(pos)) return;
-
     if (tool === TOOLS.ERASER) { eraseAtPoint(pos.x, pos.y); return; }
     continueDrawing(pos.x, pos.y);
   }, [canDraw, tool, selectedId, continueDrawing, eraseAtPoint,

@@ -1,4 +1,8 @@
 // src/firebase/elementService.js
+// v1.4: No API changes — all existing exports preserved.
+// setElement (single doc write) is now used by useBoardPersistence for
+// individual dirty element flushes, enabling per-element writes that don't
+// overwrite concurrent users' work.
 
 import {
   collection, doc, setDoc, deleteDoc,
@@ -6,7 +10,6 @@ import {
 } from 'firebase/firestore';
 import { db } from './config.js';
 
-// Firestore hard limit is 500 operations per batch commit
 const CHUNK_SIZE = 490;
 
 /* ── Add / update a single element ──────────────────────────────────────── */
@@ -35,16 +38,7 @@ export async function batchSetElements(boardId, elements) {
   }
 }
 
-/* ── Batch delete — chunked to stay under Firestore's 500-op limit ──────────
- *
- *  BUG FIX: Previously, batchSetElements only wrote surviving elements via
- *  setDoc. It never deleted the Firestore documents of elements that were
- *  erased or cleared locally.  When onSnapshot fired after the save it read
- *  ALL documents — including the "deleted" ones — and restored them.
- *
- *  This function is called by useBoardPersistence with the diff of IDs that
- *  existed on the previous save but are no longer in the current elements array.
- * ─────────────────────────────────────────────────────────────────────────── */
+/* ── Batch delete ─────────────────────────────────────────────────────────── */
 export async function batchDeleteElements(boardId, elementIds) {
   if (!elementIds || elementIds.length === 0) return;
 

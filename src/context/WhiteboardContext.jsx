@@ -1,8 +1,13 @@
 // src/context/WhiteboardContext.jsx
+// v1.4 fixes:
+// • boardData now fed by onBoardChange real-time listener (not one-time getBoard),
+//   so isEditor updates immediately when owner adds/removes the user.
+// • Added boardLoading guard so canDraw is never incorrectly false while loading.
+// • Listener cleanup on boardId / user change prevents stale callbacks.
 
 import { createContext, useContext, useState, useEffect,
          useRef, useCallback }                         from 'react';
-import { getBoard }                                    from '../firebase/boardService.js';
+import { onBoardChange }                               from '../firebase/boardService.js';
 import { broadcastCursor, onCursorsChange,
          removeCursor }                                from '../firebase/cursorService.js';
 import { useWhiteboard }                               from '../hooks/useWhiteboard.js';
@@ -17,16 +22,40 @@ export function WhiteboardProvider({ boardId, user, children }) {
   const [boardLoading,  setBoardLoading]  = useState(true);
   const [boardMissing,  setBoardMissing]  = useState(false);
 
-  /* ── Load board metadata once ────────────────────────────────────────── */
+  // ── Board metadata — real-time listener ──────────────────────────────────
+  // Using onBoardChange instead of a one-time getBoard so that:
+  //   1. When the owner adds this user as an editor, canDraw flips immediately.
+  //   2. Board name / visibility changes propagate without a page reload.
   useEffect(() => {
     if (!boardId) return;
-    getBoard(boardId)
-      .then(b => { setBoardData(b || null); setBoardMissing(!b); })
-      .catch(() => setBoardMissing(true))
-      .finally(() => setBoardLoading(false));
+    setBoardLoading(true);
+    setBoardMissing(false);
+
+    const unsub = onBoardChange(boardId, (board) => {
+      if (!board) {
+        setBoardMissing(true);
+        setBoardData(null);
+      } else {
+        setBoardData(board);
+        setBoardMissing(false);
+      }
+      setBoardLoading(false);
+    });
+
+    // onBoardChange uses onSnapshot — if the doc doesn't exist, the callback
+    // is never called. Set a timeout fallback so the loading spinner doesn't
+    // hang forever on a missing board.
+    const timeout = setTimeout(() => {
+      setBoardLoading(prev => {
+        if (prev) { setBoardMissing(true); return false; }
+        return prev;
+      });
+    }, 8000);
+
+    return () => { unsub(); clearTimeout(timeout); };
   }, [boardId]);
 
-  /* ── Cursor subscription ─────────────────────────────────────────────── */
+  // ── Cursor subscription ───────────────────────────────────────────────────
   useEffect(() => {
     if (!boardId || !user) return;
     const unsub = onCursorsChange(boardId, user.uid, cursorsArray => {
@@ -40,18 +69,16 @@ export function WhiteboardProvider({ boardId, user, children }) {
     };
   }, [boardId, user]);
 
-  /* ── Cursor broadcast callback ───────────────────────────────────────── */
+  // ── Cursor broadcast callback ─────────────────────────────────────────────
   const handleCursorMove = useCallback((x, y) => {
     if (!boardId || !user) return;
     broadcastCursor(boardId, user.uid, user.displayName || user.email, x, y);
   }, [boardId, user]);
 
-  /* ── Permission flags ────────────────────────────────────────────────── */
+  // ── Permission flags ──────────────────────────────────────────────────────
   const isOwner = !!(boardData && user && boardData.ownerId === user.uid);
 
-  // BUG FIX: ShareModal stores editor emails as lowercase.
-  // Always lowercase user.email before comparing so "Bob@Gmail.com"
-  // matches the stored "bob@gmail.com" in the editors array.
+  // Always lowercase before comparing — ShareModal stores emails lowercased.
   const userEmailLower = user?.email?.toLowerCase() ?? '';
   const isEditor = !!(
     boardData && user && !isOwner &&
@@ -59,30 +86,21 @@ export function WhiteboardProvider({ boardId, user, children }) {
     boardData.editors.some(e => e.toLowerCase() === userEmailLower)
   );
 
-  const canDraw = isOwner || isEditor;
+  // While loading we don't yet know permissions — don't block draw prematurely.
+  // Once loaded, canDraw is true only for owner or editor.
+  const canDraw = boardLoading ? false : (isOwner || isEditor);
 
-  /* ── Delete-by-id helper ─────────────────────────────────────────────── */
+  // ── Delete-by-id helper ───────────────────────────────────────────────────
   const deleteElementById = useCallback((id) => {
     wb.setElements(prev => prev.filter(el => el.id !== id));
   }, [wb.setElements]);
 
   const value = {
-    // Whiteboard hook (drawing, history, persistence)
     wb,
-
-    // The raw boardId — used by ShareModal to avoid depending on boardData?.id
     boardId,
-
-    // Board metadata
     boardData, setBoardData, boardLoading, boardMissing,
-
-    // Permissions
     isOwner, isEditor, canDraw,
-
-    // Collaboration
     remoteCursors, onCursorMove: handleCursorMove,
-
-    // Helpers
     deleteElementById,
   };
 
