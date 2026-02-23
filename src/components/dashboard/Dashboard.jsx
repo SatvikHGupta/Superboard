@@ -1,13 +1,20 @@
 // src/components/dashboard/Dashboard.jsx
-//
-// Fix: Promise.all → Promise.allSettled so getEditorBoards permission-denied
-// (common for users whose Firestore rules block array-contains on editors field)
-// no longer silently kills the owned boards query too.
+// v1.4.1 optimisations:
+//   • Replaced getDocs (one-shot reads) with onSnapshot real-time listeners
+//     via onUserBoardsChange / onEditorBoardsChange.
+//     Effect: newly created boards appear instantly with zero extra reads.
+//     Each subsequent board metadata change (thumbnail, rename) triggers a
+//     1-doc incremental update, not a full collection re-fetch.
+//   • handleRefresh / refreshing state removed — no longer needed.
+//   • onCreated now receives the new boardId and navigates directly to it,
+//     so the user lands in the board immediately without a manual click.
+//   • delete / visibility-toggle still use optimistic local state updates
+//     (the listener will confirm in the background).
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  getUserBoards,
-  getEditorBoards,
+  onUserBoardsChange,
+  onEditorBoardsChange,
   deleteBoard as deleteBoardFirestore,
   updateBoard,
 } from '../../firebase/boardService.js';
@@ -19,57 +26,46 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
   const [ownedBoards,  setOwnedBoards]  = useState([]);
   const [editorBoards, setEditorBoards] = useState([]);
   const [loading,      setLoading]      = useState(true);
-  const [refreshing,   setRefreshing]   = useState(false);
 
-  const loadBoards = useCallback(async () => {
-    if (!user) return;
-
-    // allSettled — if getEditorBoards is blocked by Firestore security rules
-    // for this user, owned boards still load correctly.
-    // (Promise.all would cancel both if either rejects.)
-    const [ownedResult, sharedResult] = await Promise.allSettled([
-      getUserBoards(user.uid),
-      getEditorBoards(user.email),
-    ]);
-
-    if (ownedResult.status === 'fulfilled') {
-      setOwnedBoards(ownedResult.value);
-    } else {
-      console.error('Failed to load owned boards:', ownedResult.reason);
-      setOwnedBoards([]);
-    }
-
-    if (sharedResult.status === 'fulfilled') {
-      setEditorBoards(sharedResult.value);
-    } else {
-      // Silently swallow — permission-denied on editors array-contains query
-      // is expected for users who have no shared boards yet
-      setEditorBoards([]);
-    }
-  }, [user]);
-
+  // ── Real-time owned-boards listener ──────────────────────────────────────
   useEffect(() => {
-    async function initialLoad() {
-      setLoading(true);
-      await loadBoards();
-      setLoading(false);
-    }
-    initialLoad();
-  }, [loadBoards, user.uid]);
+    if (!user) return;
+    let initialised = false;
 
-  async function handleRefresh() {
-    setRefreshing(true);
-    await loadBoards();
-    setRefreshing(false);
+    const unsub = onUserBoardsChange(user.uid, boards => {
+      setOwnedBoards(boards);
+      if (!initialised) { setLoading(false); initialised = true; }
+    });
+
+    return unsub;
+  }, [user.uid]);
+
+  // ── Real-time editor-boards listener ──────────────────────────────────────
+  useEffect(() => {
+    if (!user?.email) return;
+    const unsub = onEditorBoardsChange(user.email, boards => {
+      setEditorBoards(boards);
+    });
+    return unsub;
+  }, [user.email]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  // After a board is created, navigate directly into it.
+  // The real-time listener will add it to the dashboard list in the background.
+  function handleBoardCreated(newBoardId) {
+    onOpenBoard(newBoardId);
   }
 
   async function handleDelete(id) {
     if (!confirm('Delete this board permanently?')) return;
+    // Optimistic — remove locally first; listener confirms.
+    setOwnedBoards(prev => prev.filter(b => b.id !== id));
     try {
       await deleteBoardFirestore(id);
-      setOwnedBoards(prev => prev.filter(b => b.id !== id));
     } catch {
       alert('Failed to delete board.');
+      // Listener will restore the board if deletion failed.
     }
   }
 
@@ -77,13 +73,18 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
     const board  = ownedBoards.find(b => b.id === id);
     if (!board) return;
     const newVis = board.visibility === 'public' ? 'private' : 'public';
+    // Optimistic update
+    setOwnedBoards(prev =>
+      prev.map(b => b.id === id ? { ...b, visibility: newVis } : b),
+    );
     try {
       await updateBoard(id, { visibility: newVis });
-      setOwnedBoards(prev =>
-        prev.map(b => b.id === id ? { ...b, visibility: newVis } : b),
-      );
     } catch {
       alert('Failed to update visibility.');
+      // Revert optimistic update
+      setOwnedBoards(prev =>
+        prev.map(b => b.id === id ? { ...b, visibility: board.visibility } : b),
+      );
     }
   }
 
@@ -105,7 +106,7 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
       />
 
       <div className="dash-content">
-        <CreateBoard user={user} onCreated={handleRefresh} />
+        <CreateBoard user={user} onCreated={handleBoardCreated} />
 
         {loading ? (
           <div className="dash-empty">
@@ -120,18 +121,7 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
           </div>
         ) : (
           <>
-            <div className="dash-section-title">
-              My Boards
-              {refreshing && (
-                <svg
-                  width="14" height="14" viewBox="0 0 24 24"
-                  fill="none" stroke="var(--a)" strokeWidth="2"
-                  style={{ animation: 'spin 1s linear infinite', marginLeft: 8 }}
-                >
-                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                </svg>
-              )}
-            </div>
+            <div className="dash-section-title">My Boards</div>
 
             {ownedBoards.length === 0 ? (
               <div className="dash-empty">

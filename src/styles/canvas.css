@@ -1,10 +1,3 @@
-/* ========================================
-   CANVAS & WHITEBOARD STYLES — Superboard
-   v1.4: Added scale-to-fit for small screens via CSS transform.
-   The canvas itself stays at its true logical size (boardWidth × boardHeight),
-   but the .canvas-scale-wrapper shrinks it with transform: scale() so it fits
-   the available viewport without horizontal scroll on small devices.
-   ======================================== */
 
 /* ---- Whiteboard Layout ---- */
 .whiteboard-layout {

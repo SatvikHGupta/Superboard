@@ -5,6 +5,13 @@
 //
 // Previously this was inlined inside Canvas.jsx.  Extracting it keeps Canvas
 // focused on pointer event routing and the RAF loop.
+//
+// v1.4.1 fix (MINOR-3):
+//   Accepts a taRef prop (forwarded from Canvas) and attaches it to the
+//   textarea via the ref attribute.  Canvas.submitText reads ta.value through
+//   taRef.current instead of document.getElementById('canvas-text-area').
+//   The id attribute is kept for backwards compatibility but is no longer
+//   used internally.
 
 import { useEffect } from 'react';
 
@@ -21,6 +28,7 @@ import { useEffect } from 'react';
  *   fontSize: number,
  *   color: string,
  *   submittedRef: React.MutableRefObject<boolean>,
+ *   taRef: React.MutableRefObject<HTMLTextAreaElement|null>,
  *   onSubmit: () => void,
  *   addTextElement: Function,
  *   addNoteElement: Function,
@@ -32,6 +40,7 @@ export default function CanvasTextOverlay({
   fontSize,
   color,
   submittedRef,
+  taRef,
   onSubmit,
   addTextElement,
   addNoteElement,
@@ -42,7 +51,7 @@ export default function CanvasTextOverlay({
     if (!textInput) return;
     submittedRef.current = false;
     const id = setTimeout(() => {
-      const ta = document.getElementById('canvas-text-area');
+      const ta = taRef?.current;
       if (ta) {
         ta.focus();
         const l = ta.value.length;
@@ -50,7 +59,7 @@ export default function CanvasTextOverlay({
       }
     }, 20);
     return () => clearTimeout(id);
-  }, [textInput, submittedRef]);
+  }, [textInput, submittedRef, taRef]);
 
   if (!textInput) return null;
 
@@ -100,6 +109,7 @@ export default function CanvasTextOverlay({
   return (
     <textarea
       id="canvas-text-area"
+      ref={taRef}
       className={
         'canvas-text-input ' +
         (isNote ? 'canvas-text-input-note' : 'canvas-text-input-text')

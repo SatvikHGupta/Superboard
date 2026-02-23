@@ -1,0 +1,367 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   admin-analytics.css  —  v1.4.2 additions
+   Append this entire file to your existing admin.css (or import it separately)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Analytics page layout ──────────────────────────────────────────────── */
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 40px;
+}
+
+.analytics-panel {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 24px;
+}
+
+.analytics-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.analytics-panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tx-1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px 0;
+}
+
+.analytics-panel-sub {
+  font-size: 12px;
+  color: var(--tx-4);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.analytics-loading {
+  font-size: 13px;
+  color: var(--tx-4);
+  padding: 20px 0;
+  text-align: center;
+}
+
+.analytics-empty {
+  font-size: 13px;
+  color: var(--tx-4);
+  padding: 24px 0;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.analytics-big-badge {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Live users ──────────────────────────────────────────────────────────── */
+.live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.live-dot-sm {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.85); }
+}
+
+.live-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-session-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg-3);
+  border-radius: var(--r-md);
+  flex-wrap: wrap;
+}
+
+.live-session-board {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.live-session-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.live-user-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tx-2);
+}
+
+/* ── Activity heatmap ────────────────────────────────────────────────────── */
+.heatmap-grid {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heatmap-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.1s;
+}
+
+.heatmap-cell:hover:not(.empty) {
+  transform: scale(1.3);
+  z-index: 1;
+  position: relative;
+}
+
+.heatmap-cell.empty {
+  background: transparent;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+/* ── Health checker ──────────────────────────────────────────────────────── */
+.health-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.health-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  background: var(--bg-3);
+  border-radius: var(--r-md);
+  flex-wrap: wrap;
+}
+
+/* ── Audit log ───────────────────────────────────────────────────────────── */
+.audit-log-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: 140px 52px 1fr 160px auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  transition: background 0.1s;
+}
+
+.audit-row:hover {
+  background: var(--bg-3);
+}
+
+.audit-ts {
+  color: var(--tx-4);
+  white-space: nowrap;
+}
+
+.audit-cost {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.audit-label {
+  color: var(--tx-2);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audit-actor {
+  color: var(--tx-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audit-board {
+  color: var(--a);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.audit-detail {
+  color: var(--tx-4);
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* ── Recycle bin ─────────────────────────────────────────────────────────── */
+.admin-recycle {
+  max-width: 900px;
+}
+
+.recycle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recycle-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  flex-wrap: wrap;
+}
+
+.recycle-thumb {
+  width: 56px;
+  height: 40px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recycle-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── badge additions ─────────────────────────────────────────────────────── */
+.badge-red {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--red, #ef4444);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* ── kbd shortcut hints in tab bar ──────────────────────────────────────── */
+.admin-tabs-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2);
+}
+
+/* ── Board details modal wider ───────────────────────────────────────────── */
+.board-details-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Admin empty state ───────────────────────────────────────────────────── */
+.admin-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* ── Usage attribution table stripe ─────────────────────────────────────── */
+.boards-table tbody tr:nth-child(even) {
+  background: var(--bg-3);
+}
+
+/* ── Scrollbar for audit log ─────────────────────────────────────────────── */
+.audit-log-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.audit-log-scroll::-webkit-scrollbar-track {
+  background: var(--bg-3);
+  border-radius: 3px;
+}
+.audit-log-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* ── Responsive collapse ─────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .audit-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .heatmap-cell {
+    width: 10px;
+    height: 10px;
+  }
+  .analytics-panel {
+    padding: 14px 14px;
+  }
+  .live-session-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

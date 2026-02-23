@@ -1,28 +1,27 @@
-// src/firebase/boardService.js
-// v1.4: onBoardChange now passes null to callback when doc doesn't exist,
-// so WhiteboardContext can set boardMissing correctly via the real-time listener.
-
 import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc,
   deleteDoc, query, where, serverTimestamp, onSnapshot,
-  writeBatch,
+  writeBatch, setDoc,
 } from 'firebase/firestore';
 import { db } from './config.js';
 
-const BOARDS = 'boards';
-const CHUNK  = 490; // Firestore batch limit is 500
+const BOARDS   = 'boards';
+const DELETED  = 'deleted_boards';
+const CHUNK    = 490; // Firestore batch limit is 500; stay safely below
 
-function sortByUpdatedAt(boards) {
-  return boards.sort((a, b) => {
+// Sort boards newest-updated-first so dashboard shows recent work at top.
+function sortByUpdatedAt(list) {
+  return [...list].sort((a, b) => {
     const at = a.updatedAt?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
     const bt = b.updatedAt?.toMillis?.() || b.createdAt?.toMillis?.() || 0;
     return bt - at;
   });
 }
 
-/* ── Create ──────────────────────────────────────────────────────────────── */
+
+/** Creates a new board document. Returns the new board's Firestore ID. */
 export async function createBoard(userId, userEmail, userName, name) {
-  const docRef = await addDoc(collection(db, BOARDS), {
+  const ref = await addDoc(collection(db, BOARDS), {
     name,
     ownerId:     userId,
     ownerEmail:  userEmail,
@@ -35,75 +34,141 @@ export async function createBoard(userId, userEmail, userName, name) {
     createdAt:   serverTimestamp(),
     updatedAt:   serverTimestamp(),
   });
-  return docRef.id;
+  return ref.id;
 }
 
-/* ── Read ────────────────────────────────────────────────────────────────── */
-export async function getUserBoards(userId) {
-  const q    = query(collection(db, BOARDS), where('ownerId', '==', userId));
-  const snap = await getDocs(q);
-  return sortByUpdatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-}
-
-export async function getEditorBoards(userEmail) {
-  if (!userEmail) return [];
-  const email = userEmail.toLowerCase();
-  const q     = query(collection(db, BOARDS), where('editors', 'array-contains', email));
-  const snap  = await getDocs(q);
-  return sortByUpdatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-}
-
-export async function getBoardsByUserId(userId) {
-  const q    = query(collection(db, BOARDS), where('ownerId', '==', userId));
-  const snap = await getDocs(q);
-  return sortByUpdatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-}
 
 export async function getBoard(boardId) {
   const snap = await getDoc(doc(db, BOARDS, boardId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...snap.data() };
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-/* ── Update ──────────────────────────────────────────────────────────────── */
-export async function updateBoard(boardId, data) {
-  await updateDoc(doc(db, BOARDS, boardId), {
-    ...data,
-    updatedAt: serverTimestamp(),
+// Both use incremental docChanges() so only changed docs are processed on each
+// snapshot — keeps re-renders and Firestore read counts low.
+
+/** Live listener for boards owned by this user. Calls callback with sorted array. */
+export function onUserBoardsChange(userId, callback) {
+  const q   = query(collection(db, BOARDS), where('ownerId', '==', userId));
+  const map = new Map();
+
+  return onSnapshot(q, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') {
+        map.delete(change.doc.id);
+      } else {
+        map.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+      }
+    });
+    callback(sortByUpdatedAt([...map.values()]));
+  }, () => callback([]));
+}
+
+/** Live listener for boards where this user is an editor. */
+export function onEditorBoardsChange(userEmail, callback) {
+  if (!userEmail) { callback([]); return () => {}; }
+  const email = userEmail.toLowerCase();
+  const q     = query(collection(db, BOARDS), where('editors', 'array-contains', email));
+  const map   = new Map();
+
+  return onSnapshot(q, snap => {
+    snap.docChanges().forEach(change => {
+      if (change.type === 'removed') {
+        map.delete(change.doc.id);
+      } else {
+        map.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+      }
+    });
+    callback(sortByUpdatedAt([...map.values()]));
+  }, () => callback([]));
+}
+
+/** Live listener for a single board document. Calls callback(null) when deleted. */
+export function onBoardChange(boardId, callback) {
+  return onSnapshot(doc(db, BOARDS, boardId), snap => {
+    callback(snap.exists() ? { id: snap.id, ...snap.data() } : null);
   });
 }
 
-/* ── Delete (with cascade) ───────────────────────────────────────────────── */
+
+/** Merges fields into a board document and bumps updatedAt. */
+export async function updateBoard(boardId, data) {
+  await updateDoc(doc(db, BOARDS, boardId), { ...data, updatedAt: serverTimestamp() });
+}
+
+
+/** Permanently deletes a board and its element / cursor subcollections. */
 export async function deleteBoard(boardId) {
   await deleteSubcollection(boardId, 'elements');
   await deleteSubcollection(boardId, 'cursors');
   await deleteDoc(doc(db, BOARDS, boardId));
 }
 
-async function deleteSubcollection(boardId, subcollection) {
-  const ref  = collection(db, BOARDS, boardId, subcollection);
-  const snap = await getDocs(ref);
+/** Deletes all docs in a named subcollection using 490-doc batches. */
+export async function deleteSubcollection(boardId, sub) {
+  const snap = await getDocs(collection(db, BOARDS, boardId, sub));
   if (snap.empty) return;
-
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += CHUNK) {
+  for (let i = 0; i < snap.docs.length; i += CHUNK) {
     const batch = writeBatch(db);
-    docs.slice(i, i + CHUNK).forEach(d => batch.delete(d.ref));
+    snap.docs.slice(i, i + CHUNK).forEach(d => batch.delete(d.ref));
     await batch.commit();
   }
 }
 
-export { deleteSubcollection };
+// Atomic writeBatch: copies board doc to /deleted_boards, removes it from
+// /boards in the same commit. No window where the board exists in both or
+// neither collection.
 
-/* ── Real-time listener ──────────────────────────────────────────────────── */
-// v1.4: passes null to callback when document doesn't exist (deleted/missing),
-// so callers can correctly set boardMissing state.
-export function onBoardChange(boardId, callback) {
-  return onSnapshot(doc(db, BOARDS, boardId), snap => {
-    if (snap.exists()) {
-      callback({ id: snap.id, ...snap.data() });
-    } else {
-      callback(null);
-    }
+export async function softDeleteBoard(boardId, deletedByEmail = '') {
+  const snap = await getDoc(doc(db, BOARDS, boardId));
+  if (!snap.exists()) throw new Error('Board not found');
+
+  const batch = writeBatch(db);
+  batch.set(doc(db, DELETED, boardId), {
+    ...snap.data(),
+    originalId: boardId,
+    deletedAt:  serverTimestamp(),
+    deletedBy:  deletedByEmail,
   });
+  batch.delete(doc(db, BOARDS, boardId));
+  await batch.commit();
+}
+
+
+/** Atomically moves a soft-deleted board back to /boards. */
+export async function restoreBoard(boardId) {
+  const snap = await getDoc(doc(db, DELETED, boardId));
+  if (!snap.exists()) throw new Error('Deleted board not found');
+
+  const { deletedAt, deletedBy, originalId, ...data } = snap.data();
+  const batch = writeBatch(db);
+  batch.set(doc(db, BOARDS, boardId), { ...data, updatedAt: serverTimestamp(), restoredAt: serverTimestamp() });
+  batch.delete(doc(db, DELETED, boardId));
+  await batch.commit();
+}
+
+
+/** Permanently deletes a soft-deleted board (subcollections + deleted_boards doc). */
+export async function purgeSoftDeletedBoard(boardId) {
+  await deleteSubcollection(boardId, 'elements');
+  await deleteSubcollection(boardId, 'cursors');
+  await deleteDoc(doc(db, DELETED, boardId));
+}
+
+export async function getSoftDeletedBoards() {
+  const snap = await getDocs(collection(db, DELETED));
+  return sortByUpdatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+}
+
+
+export async function getAllBoards() {
+  const snap = await getDocs(collection(db, BOARDS));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+
+/** One-shot fetch of all boards owned by a specific user. Used by admin UserBoardsModal. */
+export async function getBoardsByUserId(userId) {
+  const q    = query(collection(db, BOARDS), where('ownerId', '==', userId));
+  const snap = await getDocs(q);
+  return sortByUpdatedAt(snap.docs.map(d => ({ id: d.id, ...d.data() })));
 }

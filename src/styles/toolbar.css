@@ -1,18 +1,24 @@
 /* ========================================
-   TOOLBAR STYLES — Superboard
+   TOOLBAR STYLES — Superboard v1.4.2
+   Desktop: sticky bar below header (stays visible on scroll)
+   Mobile:  fixed bottom bar with horizontal scroll
    ======================================== */
 
-/* ---- Toolbar Outer Wrapper ---- */
-/* Desktop: horizontal bar centered above canvas */
+/* ---- Outer wrapper ---- */
 .toolbar {
   display: flex;
   justify-content: center;
   padding: 8px 16px 0;
   flex-shrink: 0;
-  z-index: 20;
+  /* Sticky so it stays below the header when the main area scrolls */
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /* Match the page background so content scrolling under it looks clean */
+  background: var(--bg-0);
 }
 
-/* ---- Toolbar Inner Bar ---- */
+/* ---- Inner pill bar ---- */
 .toolbar-bar {
   display: flex;
   align-items: center;
@@ -23,7 +29,7 @@
   flex-wrap: nowrap;
 }
 
-/* ---- Toolbar Divider ---- */
+/* ---- Divider ---- */
 .toolbar-divider {
   width: 1px;
   height: 24px;
@@ -32,7 +38,7 @@
   flex-shrink: 0;
 }
 
-/* ---- Tool Button ---- */
+/* ---- Tool button ---- */
 .tool-btn {
   display: flex;
   align-items: center;
@@ -48,24 +54,11 @@
   position: relative;
   flex-shrink: 0;
 }
+.tool-btn:hover  { background: var(--bg-3); color: var(--tx-1); transform: translateY(-1px); }
+.tool-btn.active { background: var(--a); color: white; box-shadow: 0 0 12px var(--a-glow); }
+.tool-btn.active:hover { background: var(--a-light); }
 
-.tool-btn:hover {
-  background: var(--bg-3);
-  color: var(--tx-1);
-  transform: translateY(-1px);
-}
-
-.tool-btn.active {
-  background: var(--a);
-  color: white;
-  box-shadow: 0 0 12px var(--a-glow);
-}
-
-.tool-btn.active:hover {
-  background: var(--a-light);
-}
-
-/* ---- Color Swatch ---- */
+/* ---- Color swatch ---- */
 .color-swatch {
   width: 24px;
   height: 24px;
@@ -75,23 +68,11 @@
   transition: all var(--dur-fast) var(--ease-spring);
   flex-shrink: 0;
 }
+.color-swatch:hover  { transform: scale(1.2); }
+.color-swatch.active { border-color: var(--a-light); box-shadow: 0 0 8px var(--a-glow); transform: scale(1.15); }
+.color-swatch-white  { border-color: var(--br-3) !important; }
 
-.color-swatch:hover {
-  transform: scale(1.2);
-}
-
-.color-swatch.active {
-  border-color: var(--a-light);
-  box-shadow: 0 0 8px var(--a-glow);
-  transform: scale(1.15);
-}
-
-/* White swatch needs a visible border */
-.color-swatch-white {
-  border-color: var(--br-3) !important;
-}
-
-/* ---- Hex / Custom Color Picker ---- */
+/* ---- Custom hex picker ---- */
 .hex-picker-label {
   position: relative;
   width: 24px;
@@ -102,11 +83,7 @@
   flex-shrink: 0;
   transition: transform var(--dur-fast) var(--ease-spring);
 }
-
-.hex-picker-label:hover {
-  transform: scale(1.2);
-}
-
+.hex-picker-label:hover { transform: scale(1.2); }
 .hex-picker-gradient {
   position: absolute;
   inset: 0;
@@ -114,7 +91,6 @@
   background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
   pointer-events: none;
 }
-
 .hex-picker-input {
   position: absolute;
   inset: 0;
@@ -124,13 +100,9 @@
   cursor: pointer;
   z-index: 5;
 }
+.hex-picker-active { border: 2px solid var(--a-light); box-shadow: 0 0 8px var(--a-glow); }
 
-.hex-picker-active {
-  border: 2px solid var(--a-light);
-  box-shadow: 0 0 8px var(--a-glow);
-}
-
-/* ---- Stroke Width Slider ---- */
+/* ---- Stroke slider ---- */
 .stroke-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -140,10 +112,8 @@
   outline: none;
   cursor: pointer;
 }
-
 .stroke-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
   width: 16px;
   height: 16px;
   background: var(--a);
@@ -152,11 +122,7 @@
   box-shadow: 0 0 6px var(--a-glow);
   transition: transform var(--dur-fast) var(--ease-spring);
 }
-
-.stroke-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
+.stroke-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .stroke-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
@@ -166,7 +132,7 @@
   cursor: pointer;
 }
 
-/* ---- Font Size Preset Buttons ---- */
+/* ---- Font size buttons ---- */
 .size-preset-btn {
   padding: 4px 10px;
   border-radius: var(--r-sm);
@@ -179,20 +145,10 @@
   transition: all var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
+.size-preset-btn:hover  { border-color: var(--a); color: var(--tx-1); }
+.size-preset-btn.active { background: var(--a); border-color: var(--a); color: white; }
 
-.size-preset-btn:hover {
-  border-color: var(--a);
-  color: var(--tx-1);
-}
-
-.size-preset-btn.active {
-  background: var(--a);
-  border-color: var(--a);
-  color: white;
-}
-
-/* ── Mobile: toolbar becomes bottom bar ──────────── */
-/* (overrides applied in base.css @media blocks)     */
+/* ── Mobile: fixed bottom bar ────────────────────────── */
 @media (max-width: 680px) {
   .toolbar {
     position: fixed;
@@ -217,37 +173,35 @@
     height: 100%;
     overflow-x: auto;
     overflow-y: hidden;
+    /* Smooth momentum scroll on iOS */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
     scrollbar-width: none;
-    /* Remove glass effect on mobile for perf */
     background: transparent;
     backdrop-filter: none;
     border: none;
     box-shadow: none;
+    /* Slightly larger tap targets on mobile */
+    gap: 8px;
   }
+  .toolbar-bar::-webkit-scrollbar { display: none; }
 
-  .toolbar-bar::-webkit-scrollbar {
-    display: none;
-  }
+  /* Larger touch targets */
+  .tool-btn    { min-width: 44px; width: 44px; height: 44px; }
+  .color-swatch      { width: 22px; height: 22px; }
+  .hex-picker-label  { width: 22px; height: 22px; }
+  .size-preset-btn   { padding: 3px 7px; font-size: 11px; }
 
-  .tool-btn {
-    min-width: 40px;
-    width: 40px;
-    height: 40px;
-  }
-
-  /* Tighten up color swatches on mobile */
-  .color-swatch {
-    width: 20px;
-    height: 20px;
-  }
-
-  .hex-picker-label {
-    width: 20px;
-    height: 20px;
-  }
-
-  .size-preset-btn {
-    padding: 3px 7px;
-    font-size: 11px;
+  /* Scroll hint gradient on right edge */
+  .toolbar::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 32px;
+    background: linear-gradient(to left, var(--bg-2), transparent);
+    pointer-events: none;
+    z-index: 1;
   }
 }

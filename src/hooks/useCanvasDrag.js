@@ -3,6 +3,12 @@
 // Encapsulates the drag / resize state machine that was previously inlined
 // inside Canvas.jsx.  Returns the current drag descriptor and event handlers
 // that Canvas.jsx wires to pointer events.
+//
+// v1.4.1 fix (DESIGN-4):
+//   elementId is now captured in the drag state object at tryStartDrag time,
+//   not read from the selectedId closure in handleDragMove.
+//   Previously, if selectedId changed mid-drag (e.g. a remote snapshot
+//   triggered a re-render), handleDragMove would move the wrong element.
 
 import { useState, useRef, useCallback } from 'react';
 import { getElementBounds, isOnResizeHandle } from '../utils/drawing/index.js';
@@ -46,7 +52,9 @@ export function useCanvasDrag({
     // Bottom-right resize handle
     if (isOnResizeHandle(pos.x, pos.y, bounds)) {
       pushToHistory(elements);
-      setDrag({ mode: 'resize', startX: pos.x, startY: pos.y });
+      // Store elementId at drag-start so handleDragMove always targets the
+      // correct element even if selectedId changes during the drag.
+      setDrag({ mode: 'resize', elementId: selectedId, startX: pos.x, startY: pos.y });
       return true;
     }
 
@@ -57,7 +65,7 @@ export function useCanvasDrag({
       pos.y >= bounds.y - pad && pos.y <= bounds.y + bounds.h + pad
     ) {
       pushToHistory(elements);
-      setDrag({ mode: 'move', startX: pos.x, startY: pos.y });
+      setDrag({ mode: 'move', elementId: selectedId, startX: pos.x, startY: pos.y });
       return true;
     }
 
@@ -75,12 +83,13 @@ export function useCanvasDrag({
     const dx = pos.x - d.startX;
     const dy = pos.y - d.startY;
 
-    if (d.mode === 'move')   moveElementBy(selectedId, dx, dy);
-    if (d.mode === 'resize') resizeElementBy(selectedId, dx, dy);
+    // Use d.elementId (captured at drag-start) not selectedId from closure
+    if (d.mode === 'move')   moveElementBy(d.elementId, dx, dy);
+    if (d.mode === 'resize') resizeElementBy(d.elementId, dx, dy);
 
     setDrag({ ...d, startX: pos.x, startY: pos.y });
     return true;
-  }, [selectedId, moveElementBy, resizeElementBy]);
+  }, [moveElementBy, resizeElementBy]);
 
   /* ── stopDrag ──────────────────────────────────────────────────────────
    * Call this from pointerUp.

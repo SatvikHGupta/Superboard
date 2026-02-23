@@ -1,3 +1,9 @@
+// src/App.jsx
+// v1.4.2: Ban check — after auth resolves, calls isBanned(uid).
+//   If the user is in /banned_users, they see an "Account Suspended" screen
+//   regardless of which route they try to access. Auth state is valid but
+//   all protected routes are blocked. They cannot navigate around the ban.
+
 import { useState, useEffect, useCallback } from 'react';
 import LoginPage   from './components/LoginPage.jsx';
 import Dashboard   from './components/dashboard/Dashboard.jsx';
@@ -5,6 +11,7 @@ import Whiteboard  from './components/whiteboard/Whiteboard.jsx';
 import ViewerPage  from './components/ViewerPage.jsx';
 import AdminPage   from './components/admin/AdminPage.jsx';
 import { auth }    from './firebase/config.js';
+import { isBanned } from './firebase/banService.js';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const ROUTES = {
@@ -15,44 +22,71 @@ const ROUTES = {
   ADMIN:     'admin',
 };
 
+// ── Suspended screen ───────────────────────────────────────────────────────
+function SuspendedPage({ ban, onLogout }) {
+  return (
+    <div className="error-page">
+      <div className="glass-card error-card" style={{ maxWidth: 420, textAlign: 'center' }}>
+        <div className="error-icon" style={{ background: 'rgba(239,68,68,0.1)', fontSize: 40 }}>🚫</div>
+        <div className="error-title" style={{ color: 'var(--red)' }}>Account Suspended</div>
+        <div className="error-text" style={{ marginTop: 12, lineHeight: 1.7 }}>
+          Your account has been suspended and you cannot access Superboard.
+        </div>
+        {ban?.reason && (
+          <div style={{
+            margin: '16px 0', padding: '10px 16px',
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 'var(--r-md)',
+            fontSize: 13, color: 'var(--tx-3)', fontStyle: 'italic',
+          }}>
+            Reason: {ban.reason}
+          </div>
+        )}
+        <div style={{ fontSize: 13, color: 'var(--tx-4)', marginBottom: 20 }}>
+          If you believe this is a mistake, please contact the platform administrator.
+        </div>
+        <button className="btn btn-ghost" onClick={onLogout}>Sign Out</button>
+      </div>
+    </div>
+  );
+}
+
 export function App() {
   const [user,        setUser]        = useState(null);
   const [page,        setPage]        = useState(ROUTES.DASHBOARD);
   const [boardId,     setBoardId]     = useState(null);
-
-  // ─── AUTH LOADING GATE ────────────────────────────────────────────────
-  // Stays true until onAuthStateChanged fires for the first time.
-  // This guarantees the Firebase SDK is fully initialized — auth tokens are
-  // attached to requests, and Firestore security rules evaluate correctly.
-  //
-  // Without this gate:
-  //  • First load: ViewerPage and Whiteboard mount BEFORE auth resolves.
-  //    Firestore reads go out unauthenticated → rules deny → board not found
-  //    or continuous loading spinner.
-  //  • After refresh: SDK reads cached auth from IndexedDB, resolves faster,
-  //    so it "works" — explaining the refresh-fixes-it symptom.
-  //
-  // With this gate: every route waits for that first callback. For logged-in
-  // users this is ~50–150 ms. For logged-out users it's the same — and they
-  // either see the viewer (public route) or get redirected to login.
   const [authLoading, setAuthLoading] = useState(true);
+  // banInfo: null = not banned, object = ban record with reason/bannedAt
+  const [banInfo,     setBanInfo]     = useState(null);
 
   /* ── Firebase Auth listener ──────────────────────────────────────────── */
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, firebaseUser => {
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       if (firebaseUser) {
-        const u = {
-          uid:         firebaseUser.uid,
-          email:       firebaseUser.email,
-          displayName: firebaseUser.displayName,
-        };
-        localStorage.setItem('wb_user', JSON.stringify(u));
-        setUser(u);
+        // Check ban status every time auth resolves (login, page reload).
+        // Costs 1 Firestore read per session — negligible.
+        const ban = await isBanned(firebaseUser.uid);
+        if (ban) {
+          // Banned: don't store user in state (prevents navigating anywhere),
+          // just store the ban record so we can show the reason.
+          setBanInfo(ban);
+          setUser(null);
+        } else {
+          setBanInfo(null);
+          const u = {
+            uid:         firebaseUser.uid,
+            email:       firebaseUser.email,
+            displayName: firebaseUser.displayName,
+          };
+          localStorage.setItem('wb_user', JSON.stringify(u));
+          setUser(u);
+        }
       } else {
         localStorage.removeItem('wb_user');
         setUser(null);
+        setBanInfo(null);
       }
-      // ← First callback has fired: Firebase SDK is ready.
       setAuthLoading(false);
     });
     return unsubscribe;
@@ -66,12 +100,10 @@ export function App() {
       const id = hash.replace('#/view/', '');
       if (id) { setBoardId(id); setPage(ROUTES.VIEWER); return; }
     }
-
     if (hash.startsWith('#/board/')) {
       const id = hash.replace('#/board/', '');
       if (id) { setBoardId(id); setPage(ROUTES.BOARD); return; }
     }
-
     if (hash === '#/admin') { setBoardId(null); setPage(ROUTES.ADMIN); return; }
 
     setBoardId(null);
@@ -93,7 +125,6 @@ export function App() {
 
   function handleLogout() { auth.signOut(); }
 
-  /* ── Navigation handlers ─────────────────────────────────────────────── */
   function handleOpenBoard(id) {
     setBoardId(id);
     setPage(ROUTES.BOARD);
@@ -106,9 +137,7 @@ export function App() {
     window.location.hash = '#/';
   }
 
-  /* ── Auth loading spinner — shown for ALL routes ─────────────────────── */
-  // Keeps the spinner consistent and prevents any Firestore read from firing
-  // before the SDK is ready. Typically resolves in under 200 ms.
+  /* ── Auth loading spinner ────────────────────────────────────────────── */
   if (authLoading) {
     return (
       <div className="error-page">
@@ -124,14 +153,19 @@ export function App() {
     );
   }
 
-  /* ── Route rendering (auth always resolved below this line) ─────────── */
+  /* ── Banned user screen — shown before any route rendering ──────────── */
+  // banInfo is set even when user is not in state, so banned users
+  // always see the suspension screen and cannot access anything.
+  if (banInfo) {
+    return <SuspendedPage ban={banInfo} onLogout={handleLogout} />;
+  }
 
-  // Public viewer — rendered for logged-in AND logged-out users
+  /* ── Public viewer — accessible without login ────────────────────────── */
   if (page === ROUTES.VIEWER && boardId) {
     return <ViewerPage boardId={boardId} />;
   }
 
-  // Protected routes — redirect to login if not authenticated
+  /* ── Protected routes ────────────────────────────────────────────────── */
   if (!user) {
     return <LoginPage onLogin={handleLogin} />;
   }

@@ -2,8 +2,15 @@
 //
 // Refactored: SaveIndicator and ManualSaveButton are now imported from their
 // own files instead of being defined inline here.
+//
+// v1.4.1 fix (BUG-4):
+//   Pressing Escape during a rename previously saved the board anyway.
+//   The sequence was: Escape → setIsRenaming(false) → input unmounts →
+//   onBlur fires → saveRename() called.
+//   Fix: an escapedRef tracks intent.  saveRename() bails out immediately
+//   if the ref is true, and onRenameKey sets it before calling setIsRenaming.
 
-import { useState }          from 'react';
+import { useState, useRef } from 'react';
 import { updateBoard }       from '../../firebase/boardService.js';
 import ExportDropdown        from './ExportDropdown.jsx';
 import SaveIndicator         from './SaveIndicator.jsx';
@@ -18,13 +25,20 @@ export default function WhiteboardHeader({
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName,    setNewName]    = useState('');
 
+  // BUG-4 fix: track when the user explicitly cancelled with Escape so that
+  // the blur event (fired on unmount) does not trigger an unwanted save.
+  const escapedRef = useRef(false);
+
   function startRename() {
     if (!isOwner) return;
+    escapedRef.current = false;
     setNewName(boardData?.name || '');
     setIsRenaming(true);
   }
 
   async function saveRename() {
+    // If the user pressed Escape, don't save — just reset the flag.
+    if (escapedRef.current) { escapedRef.current = false; return; }
     if (!boardData || !newName.trim()) { setIsRenaming(false); return; }
     try {
       await updateBoard(boardData.id, { name: newName.trim() });
@@ -33,8 +47,12 @@ export default function WhiteboardHeader({
   }
 
   function onRenameKey(e) {
-    if (e.key === 'Enter')  { e.preventDefault(); saveRename(); }
-    if (e.key === 'Escape') { setIsRenaming(false); }
+    if (e.key === 'Enter') { e.preventDefault(); saveRename(); }
+    if (e.key === 'Escape') {
+      // Set the flag BEFORE setIsRenaming so the blur handler sees it
+      escapedRef.current = true;
+      setIsRenaming(false);
+    }
   }
 
   const displayName = boardData?.name || 'Whiteboard';
