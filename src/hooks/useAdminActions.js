@@ -4,6 +4,7 @@ import { db }                          from '../firebase/config.js';
 import { softDeleteBoard }             from '../firebase/boardService.js';
 import { banUser, unbanUser }          from '../firebase/banService.js';
 import { writeAuditLog }               from '../firebase/auditService.js';
+import { isAdminEmail }                from '../constants/admin.js';
 
 export function useAdminActions({ boards, setBoards, setStats, setBannedUsers, askConfirm, closeConfirm, adminEmail }) {
 
@@ -103,6 +104,11 @@ export function useAdminActions({ boards, setBoards, setStats, setBannedUsers, a
   }, [boards, askConfirm, closeConfirm, adminEmail, setBoards, setStats]);
 
   const handleBanUser = useCallback(async (targetUser, reason) => {
+    // Prevent admins from banning other admins (softlock protection)
+    if (isAdminEmail(targetUser.email)) {
+      alert('Admins cannot be banned. This protects against admin lockout.');
+      return;
+    }
     try {
       await banUser(targetUser.uid, targetUser.email, reason, adminEmail);
       await writeAuditLog('USER_BANNED', { actorEmail: adminEmail, targetId: targetUser.uid, targetEmail: targetUser.email, detail: reason || 'No reason given' });

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs }              from 'firebase/firestore';
 import { db }                               from '../../firebase/config.js';
 import { getBannedUsers }                   from '../../firebase/banService.js';
+import { getAllUsers }                       from '../../firebase/userService.js';
 import { writeAuditLog }                    from '../../firebase/auditService.js';
 import { isAdminEmail }                     from '../../constants/admin.js';
 import { useAdminActions }                  from '../../hooks/useAdminActions.js';
@@ -61,48 +62,50 @@ export default function AdminPage({ user, onBack }) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Load boards and banned-users independently so a permissions failure
-      // on banned_users (rules not yet deployed) never blocks boards from loading.
+      // Load boards, users, and banned-users independently so one failure
+      // doesn't block others. /users tracks everyone who has ever logged in.
       const boardsSnap = await getDocs(collection(db, 'boards'));
       const boardsList = boardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setBoards(boardsList);
 
+      // Load all tracked users (not just board owners)
+      getAllUsers()
+        .then(allUsers => {
+          // Merge board stats into user records
+          const statsMap = {};
+          boardsList.forEach(board => {
+            if (!board.ownerId) return;
+            if (!statsMap[board.ownerId]) statsMap[board.ownerId] = { boardCount: 0, lastActive: 0 };
+            statsMap[board.ownerId].boardCount++;
+            const t = board.updatedAt?.toMillis?.() || 0;
+            if (t > statsMap[board.ownerId].lastActive) statsMap[board.ownerId].lastActive = t;
+          });
+          const enriched = allUsers.map(u => ({
+            ...u,
+            name:       u.displayName || u.email,
+            boardCount: statsMap[u.uid]?.boardCount  || 0,
+            lastActive: statsMap[u.uid]?.lastActive  || u.lastSeen?.toMillis?.() || 0,
+          }));
+          setUsers(enriched);
+          setStats(prev => ({ ...prev, totalUsers: enriched.length }));
+        })
+        .catch(() => {});
+
       getBannedUsers()
         .then(banned => setBannedUsers(banned))
-        .catch(() => {}); // silently ignore if rules not yet updated
+        .catch(() => {});
 
       writeAuditLog('ADMIN_DATA_LOADED', { actorEmail: user.email }).catch(() => {});
 
       const now        = Date.now();
       const oneWeekAgo = now - 7 * 86400000;
-      const oneDayAgo  = now - 86400000;
-      const usersMap   = new Map();
-
-      boardsList.forEach(board => {
-        if (!board.ownerId) return;
-        if (!usersMap.has(board.ownerId)) {
-          usersMap.set(board.ownerId, {
-            uid: board.ownerId, email: board.ownerEmail,
-            name: board.ownerName || board.ownerEmail,
-            boardCount: 0, lastActive: board.updatedAt?.toMillis?.() || 0,
-          });
-        }
-        const u = usersMap.get(board.ownerId);
-        u.boardCount++;
-        const t = board.updatedAt?.toMillis?.() || 0;
-        if (t > u.lastActive) u.lastActive = t;
-      });
-
-      const usersArray = Array.from(usersMap.values());
-      setUsers(usersArray);
-      setStats({
+      setStats(prev => ({
+        ...prev,
         totalBoards:    boardsList.length,
         publicBoards:   boardsList.filter(b => b.visibility === 'public').length,
         privateBoards:  boardsList.filter(b => b.visibility === 'private').length,
-        totalUsers:     usersMap.size,
         boardsThisWeek: boardsList.filter(b => (b.createdAt?.toMillis?.() || 0) > oneWeekAgo).length,
-        activeToday:    usersArray.filter(u => u.lastActive > oneDayAgo).length,
-      });
+      }));
     } catch (err) { console.error('Failed to load admin data:', err); }
     setLoading(false);
   }, [user.email]);
@@ -156,7 +159,7 @@ export default function AdminPage({ user, onBack }) {
             </button>
           ))}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--tx-4)', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="admin-kbd-hints">
           <span><kbd style={kbdStyle}>R</kbd> Refresh</span>
           <span><kbd style={kbdStyle}>/</kbd> Search</span>
           <span><kbd style={kbdStyle}>Esc</kbd> Close</span>

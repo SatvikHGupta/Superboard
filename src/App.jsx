@@ -12,6 +12,8 @@ import ViewerPage  from './components/ViewerPage.jsx';
 import AdminPage   from './components/admin/AdminPage.jsx';
 import { auth }    from './firebase/config.js';
 import { isBanned } from './firebase/banService.js';
+import { trackUserLogin } from './firebase/userService.js';
+import QuotaWarningBanner from './components/QuotaWarningBanner.jsx';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const ROUTES = {
@@ -80,6 +82,8 @@ export function App() {
             displayName: firebaseUser.displayName,
           };
           localStorage.setItem('wb_user', JSON.stringify(u));
+          // Track this login in /users collection (admin panel user count)
+          trackUserLogin(u).catch(() => {});
           setUser(u);
         }
       } else {
@@ -171,18 +175,21 @@ export function App() {
   }
 
   if (page === ROUTES.ADMIN) {
-    return <AdminPage user={user} onBack={handleBack} />;
+    return (<><AdminPage user={user} onBack={handleBack} /><QuotaWarningBanner /></>);
   }
 
   if (page === ROUTES.BOARD && boardId) {
-    return <Whiteboard boardId={boardId} onBack={handleBack} user={user} />;
+    return (<><Whiteboard boardId={boardId} onBack={handleBack} user={user} /><QuotaWarningBanner /></>);
   }
 
   return (
-    <Dashboard
-      user={user}
-      onOpenBoard={handleOpenBoard}
-      onLogout={handleLogout}
-    />
+    <>
+      <Dashboard
+        user={user}
+        onOpenBoard={handleOpenBoard}
+        onLogout={handleLogout}
+      />
+      <QuotaWarningBanner />
+    </>
   );
 }

@@ -28,7 +28,7 @@ export default function AdminBoardsTab({
   function setSearch(v)    { setSearchQuery(v); setPage(1); }
   function setFilter(v)    { setFilterVisibility(v); setPage(1); }
   function toggleSelect(id){ setSelectedBoards(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]); }
-  function selectAll()     { setSelectedBoards(filtered.map(b => b.id)); }
+  function selectAll()     { setSelectedBoards([...filtered.map(b => b.id)]); }
   function clearSelected() { setSelectedBoards([]); }
 
   return (

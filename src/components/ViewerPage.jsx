@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getBoard }        from '../firebase/boardService.js';
+import { trackPublicView }  from '../firebase/userService.js';
 import { onElementsChange } from '../firebase/elementService.js';
 import { renderCanvas, exportAsPNG, exportAsPDF } from '../utils/drawing/index.js';
 
@@ -19,7 +20,7 @@ export default function ViewerPage({ boardId }) {
 
   useEffect(() => {
     getBoard(boardId)
-      .then(b => setBoard(b || null))
+      .then(b => { setBoard(b || null); if (b) trackPublicView(boardId).catch(()=>{}); })
       .catch(() => setBoard(null))
       .finally(() => setLoading(false));
   }, [boardId]);

@@ -26,7 +26,7 @@ export default function CreateBoard({ user, onCreated }) {
       
       // Force refresh with a small delay to ensure Firestore has propagated
       setTimeout(() => {
-        if (onCreated) onCreated();
+        if (onCreated) onCreated(newBoardId);
       }, 500);
     } catch (err) {
       console.error('Create board error:', err);

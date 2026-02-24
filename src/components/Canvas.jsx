@@ -51,6 +51,9 @@ export default function Canvas({
   const { tryStartDrag, handleDragMove, stopDrag, dragCursor } =
     useCanvasDrag({ elements, selectedId, moveElementBy, resizeElementBy, pushToHistory });
 
+  // Pan state — used when SELECT tool is held on empty canvas area
+  const panRef = useRef(null); // { startClientX, startClientY, startScrollLeft, startScrollTop }
+
   function setCanvasRef(el) {
     canvasRef.current = el;
     if (canvasElRef) canvasElRef.current = el;
@@ -154,7 +157,28 @@ export default function Canvas({
 
     if (textInputRef.current) { submittedRef.current = false; submitText(); return; }
 
-    if (tool === TOOLS.SELECT) { if (!tryStartDrag(pos)) selectAtPoint(pos.x, pos.y); return; }
+    if (tool === TOOLS.SELECT) {
+      const dragged = tryStartDrag(pos);
+      if (!dragged) {
+        const hit = hitTest(elements, pos, 8);
+        if (!hit) {
+          // Empty canvas area + select tool = enter pan mode
+          const scrollEl = canvas.closest('.whiteboard-main');
+          if (scrollEl) {
+            panRef.current = {
+              startClientX:  e.clientX,
+              startClientY:  e.clientY,
+              startScrollLeft: scrollEl.scrollLeft,
+              startScrollTop:  scrollEl.scrollTop,
+              el: scrollEl,
+            };
+            canvas.releasePointerCapture(e.pointerId); // don't capture — let scroll happen
+          }
+        }
+        selectAtPoint(pos.x, pos.y);
+      }
+      return;
+    }
     if (tool === TOOLS.ERASER) { startErasing(); eraseAtPoint(pos.x, pos.y); return; }
     if (tool === TOOLS.TEXT)   { openTextInput(e, false, pos.x, pos.y); return; }
     if (tool === TOOLS.NOTE)   { openTextInput(e, true,  pos.x, pos.y); return; }
@@ -188,12 +212,23 @@ export default function Canvas({
     }
 
     if (canDraw === false) return;
+
+    // Handle pan mode (select tool + drag on empty canvas)
+    if (panRef.current) {
+      const dx = e.clientX - panRef.current.startClientX;
+      const dy = e.clientY - panRef.current.startClientY;
+      panRef.current.el.scrollLeft = panRef.current.startScrollLeft - dx;
+      panRef.current.el.scrollTop  = panRef.current.startScrollTop  - dy;
+      return;
+    }
+
     if (handleDragMove(pos)) return;
     if (tool === TOOLS.ERASER) { eraseAtPoint(pos.x, pos.y); return; }
     continueDrawing(pos.x, pos.y);
   }, [canDraw, tool, continueDrawing, eraseAtPoint, handleDragMove, onCursorMove]);
 
   const handlePointerUp = useCallback(() => {
+    panRef.current = null; // end any pan
     if (canDraw === false) return;
     if (stopDrag()) return;
     if (tool === TOOLS.ERASER) { stopErasing(); return; }
@@ -204,7 +239,7 @@ export default function Canvas({
   let cursor = 'crosshair';
   if (canDraw === false)                              cursor = 'default';
   else if (tool === TOOLS.TEXT || tool === TOOLS.NOTE) cursor = 'text';
-  else if (tool === TOOLS.SELECT)                     cursor = dragCursor || 'default';
+  else if (tool === TOOLS.SELECT)                     cursor = panRef.current ? 'grabbing' : (dragCursor || 'grab');
 
   return (
     <div className="canvas-wrapper">
