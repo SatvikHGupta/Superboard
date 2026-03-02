@@ -1,3 +1,5 @@
+//CRUD factory of board
+
 import {
   collection, doc, addDoc, getDoc, getDocs, updateDoc,
   deleteDoc, query, where, serverTimestamp, onSnapshot,
@@ -7,9 +9,9 @@ import { db } from './config.js';
 
 const BOARDS   = 'boards';
 const DELETED  = 'deleted_boards';
-const CHUNK    = 490; // Firestore batch limit is 500; stay safely below
+const CHUNK    = 490; // Firestore batch limit is 500;
 
-// Sort boards newest-updated-first so dashboard shows recent work at top.
+// Sort to latest update
 function sortByUpdatedAt(list) {
   return [...list].sort((a, b) => {
     const at = a.updatedAt?.toMillis?.() || a.createdAt?.toMillis?.() || 0;
@@ -19,7 +21,7 @@ function sortByUpdatedAt(list) {
 }
 
 
-/** Creates a new board document. Returns the new board's Firestore ID. */
+/* Delivery */
 export async function createBoard(userId, userEmail, userName, name) {
   const ref = await addDoc(collection(db, BOARDS), {
     name,
@@ -43,10 +45,7 @@ export async function getBoard(boardId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-// Both use incremental docChanges() so only changed docs are processed on each
-// snapshot — keeps re-renders and Firestore read counts low.
-
-/** Live listener for boards owned by this user. Calls callback with sorted array. */
+/* Live listener for boards owned by this user. Calls callback with sorted array. */
 export function onUserBoardsChange(userId, callback) {
   const q   = query(collection(db, BOARDS), where('ownerId', '==', userId));
   const map = new Map();
@@ -63,7 +62,7 @@ export function onUserBoardsChange(userId, callback) {
   }, () => callback([]));
 }
 
-/** Live listener for boards where this user is an editor. */
+/* Live listener when this user is editor. */
 export function onEditorBoardsChange(userEmail, callback) {
   if (!userEmail) { callback([]); return () => {}; }
   const email = userEmail.toLowerCase();
@@ -82,7 +81,7 @@ export function onEditorBoardsChange(userEmail, callback) {
   }, () => callback([]));
 }
 
-/** Live listener for a single board document. Calls callback(null) when deleted. */
+/* Live listener for single board,  callback(null) when deleted. */
 export function onBoardChange(boardId, callback) {
   return onSnapshot(doc(db, BOARDS, boardId), snap => {
     callback(snap.exists() ? { id: snap.id, ...snap.data() } : null);
@@ -90,20 +89,20 @@ export function onBoardChange(boardId, callback) {
 }
 
 
-/** Merges fields into a board document and bumps updatedAt. */
+/*merging*/
 export async function updateBoard(boardId, data) {
   await updateDoc(doc(db, BOARDS, boardId), { ...data, updatedAt: serverTimestamp() });
 }
 
 
-/** Permanently deletes a board and its element / cursor subcollections. */
+/*Perma death*/
 export async function deleteBoard(boardId) {
   await deleteSubcollection(boardId, 'elements');
   await deleteSubcollection(boardId, 'cursors');
   await deleteDoc(doc(db, BOARDS, boardId));
 }
 
-/** Deletes all docs in a named subcollection using 490-doc batches. */
+/* delete subcollection */
 export async function deleteSubcollection(boardId, sub) {
   const snap = await getDocs(collection(db, BOARDS, boardId, sub));
   if (snap.empty) return;
@@ -114,9 +113,7 @@ export async function deleteSubcollection(boardId, sub) {
   }
 }
 
-// Atomic writeBatch: copies board doc to /deleted_boards, removes it from
-// /boards in the same commit. No window where the board exists in both or
-// neither collection.
+// 1 commit se 2 nishane
 
 export async function softDeleteBoard(boardId, deletedByEmail = '') {
   const snap = await getDoc(doc(db, BOARDS, boardId));
@@ -134,7 +131,7 @@ export async function softDeleteBoard(boardId, deletedByEmail = '') {
 }
 
 
-/** Atomically moves a soft-deleted board back to /boards. */
+/* eye of aggamotto */
 export async function restoreBoard(boardId) {
   const snap = await getDoc(doc(db, DELETED, boardId));
   if (!snap.exists()) throw new Error('Deleted board not found');
@@ -147,7 +144,7 @@ export async function restoreBoard(boardId) {
 }
 
 
-/** Permanently deletes a soft-deleted board (subcollections + deleted_boards doc). */
+/* purge it morty */
 export async function purgeSoftDeletedBoard(boardId) {
   await deleteSubcollection(boardId, 'elements');
   await deleteSubcollection(boardId, 'cursors');
@@ -166,7 +163,7 @@ export async function getAllBoards() {
 }
 
 
-/** One-shot fetch of all boards owned by a specific user. Used by admin UserBoardsModal. */
+/* one shot fetch */
 export async function getBoardsByUserId(userId) {
   const q    = query(collection(db, BOARDS), where('ownerId', '==', userId));
   const snap = await getDocs(q);

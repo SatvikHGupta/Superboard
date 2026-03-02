@@ -1,4 +1,4 @@
-// src/components/admin/AdminOverviewTab.jsx
+// short summary or precis kehte h 
 
 import AdminStats from './AdminStats.jsx';
 

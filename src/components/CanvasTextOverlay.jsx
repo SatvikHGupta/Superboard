@@ -1,17 +1,4 @@
-// src/components/CanvasTextOverlay.jsx
-//
-// The floating textarea that appears when the user activates the Text or Note
-// tool, or double-clicks an existing text / note element to re-edit it.
-//
-// Previously this was inlined inside Canvas.jsx.  Extracting it keeps Canvas
-// focused on pointer event routing and the RAF loop.
-//
-// v1.4.1 fix (MINOR-3):
-//   Accepts a taRef prop (forwarded from Canvas) and attaches it to the
-//   textarea via the ref attribute.  Canvas.submitText reads ta.value through
-//   taRef.current instead of document.getElementById('canvas-text-area').
-//   The id attribute is kept for backwards compatibility but is no longer
-//   used internally.
+// text editor popup
 
 import { useEffect } from 'react';
 

@@ -1,8 +1,9 @@
+//sarkate ka aatank
+
 import { useState, useEffect } from 'react';
 
 export default function AdminHeader({ user, onBack, onRefresh, liveCount }) {
-  // liveCount is passed in from AdminAnalyticsTab/LiveUsersPanel via prop,
-  // so we never open a collectionGroup listener here (that crashes the SDK).
+  // liveCount is passed in from AdminAnalyticsTab/LiveUsersPanel via prop, so we never open a collectionGroup listener here (that crashes the SDK).
   const count = typeof liveCount === 'number' ? liveCount : null;
 
   return (

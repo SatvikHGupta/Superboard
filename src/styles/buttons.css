@@ -1,6 +1,4 @@
-/* ========================================
-   BUTTON STYLES
-   ======================================== */
+/* Shirt ka button missing h */
 
 .btn {
   display: inline-flex;
@@ -24,7 +22,7 @@
   outline-offset: 2px;
 }
 
-/* ---- Primary ---- */
+/* Primary */
 .btn-primary {
   background: linear-gradient(135deg, var(--a), var(--a-dark));
   color: white;
@@ -43,7 +41,7 @@
   box-shadow: 0 1px 4px var(--a-glow);
 }
 
-/* ---- Ghost ---- */
+/* Soap from COD */
 .btn-ghost {
   background: transparent;
   color: var(--tx-2);
@@ -60,7 +58,7 @@
   background: var(--bg-4);
 }
 
-/* ---- Danger ---- */
+/* Rohit shetty  */
 .btn-danger {
   background: transparent;
   color: var(--tx-2);
@@ -71,7 +69,7 @@
   color: var(--red);
 }
 
-/* ---- Icon Button ---- */
+/* Icon Buttons*/
 .btn-icon {
   display: inline-flex;
   align-items: center;

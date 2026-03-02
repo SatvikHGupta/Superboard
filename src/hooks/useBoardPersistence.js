@@ -1,18 +1,4 @@
-// src/hooks/useBoardPersistence.js
-//
-// v1.4 — Concurrent multi-user save fix (see long comment below)
-// v1.4.1 — markLocal returned, duplicate onBoardChange removed, retry on error
-// v1.4.2 optimisations:
-//   • boardHeight is only written to Firestore when it actually changed since
-//     the last successful save.  Previously it was included in every autosave
-//     cycle even when the board height hadn't changed, costing 1 extra write
-//     per 1.5 s per active user.
-//   • Thumbnail throttle increased from 30 s to 300 s (5 min).
-//     Thumbnails are cosmetic — saving them every 30 s per user was the
-//     second-largest write cost after cursors.
-//   • tryUpdateBoard({ boardHeight, thumbnail }) merged into a single
-//     updateDoc call when both need writing, halving the write count for
-//     that case.
+// isko chedne waale tera monitor crt, iske bina kuch nhi hoga
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -50,10 +36,7 @@ export function useBoardPersistence(
   const isManuallySaving = useRef(false);
   const lastThumbTime    = useRef(0);
   const boardHeightRef   = useRef(boardHeight);
-
-  // Track the last boardHeight that was successfully written to Firestore.
-  // Only write again when it actually changes.
-  const lastSavedBoardHeightRef = useRef(null); // null = never saved yet
+  const lastSavedBoardHeightRef = useRef(null); // null = not saved yet
 
   boardHeightRef.current = boardHeight;
   elementsRef.current    = elements;
@@ -63,7 +46,7 @@ export function useBoardPersistence(
   const prevElementsSnapshotRef = useRef(elements);
   const dirtyRef = useRef(false);
 
-  // ── markLocal — stable API object ──────────────────────────────────────
+  // markLocal ye stable API object h jo kaafi important h
   const markLocal = useRef({
     add(id) {
       localElementIds.current.add(id);
@@ -82,7 +65,7 @@ export function useBoardPersistence(
     },
   });
 
-  // ── Firestore element listener — MERGE, not overwrite ──────────────────
+  // Firestore element listener ye MERGE karega, not overwrite 
   useEffect(() => {
     if (!boardId) return;
     let mounted = true;
@@ -110,7 +93,7 @@ export function useBoardPersistence(
     return () => { mounted = false; unsub(); };
   }, [boardId, setElements]);
 
-  // ── Core save ────────────────────────────────────────────────────────────
+  //  Core save
   const performSave = useCallback(async (force = false) => {
     if (!boardId) return;
 
@@ -135,11 +118,9 @@ export function useBoardPersistence(
         toDelete.forEach(id => pendingDeleteIds.current.delete(id));
       }
 
-      // Only clear dirty flag on success — failure keeps it true so next
-      // interval retries automatically.
+      // Only clear dirty flag on success agar failure keeps it true so next interval retries automatically.
       dirtyRef.current = false;
 
-      // ── Board metadata update (optimised) ────────────────────────────────
       // Build a single update object to avoid multiple round trips.
       const boardUpdate = {};
 
@@ -176,12 +157,12 @@ export function useBoardPersistence(
       setSaveStatus('saved');
     } catch (err) {
       console.error('Save failed:', err);
-      // dirtyRef stays true — next interval will retry.
+      // dirtyRef stays true matlab next interval me will retry.
       setSaveStatus('error');
     }
   }, [boardId]);
 
-  // ── Interval autosave ────────────────────────────────────────────────────
+  // Interval autosave
   useEffect(() => {
     if (!boardId) return;
 
@@ -221,7 +202,7 @@ export function useBoardPersistence(
     return () => clearInterval(interval);
   }, [boardId, performSave]);
 
-  // ── Manual save ──────────────────────────────────────────────────────────
+  // Manual save 
   const manualSave = useCallback(async () => {
     if (!boardId || isManuallySaving.current) return;
     isManuallySaving.current = true;
@@ -243,7 +224,7 @@ export function useBoardPersistence(
     }
   }, [boardId, performSave]);
 
-  // ── Flush on unmount ─────────────────────────────────────────────────────
+  // Flush on unmount
   useEffect(() => {
     return () => {
       if (!boardId) return;

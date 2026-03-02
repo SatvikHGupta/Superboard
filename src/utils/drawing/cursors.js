@@ -1,12 +1,4 @@
-// src/utils/drawing/cursors.js
-//
-// Remote cursor rendering — extracted from Canvas.jsx's RAF loop.
-// Draws a coloured dot with a white border and a name pill for each
-// collaborator currently on the board.
-//
-// The inline roundRect implementation (quadraticCurveTo path) is kept
-// deliberately to avoid CanvasRenderingContext2D.roundRect compatibility
-// issues on older Chrome / Safari versions still in the wild.
+// multiplayer but you're playing as katniss
 
 /**
  * Draw all remote cursors onto ctx.
@@ -25,7 +17,7 @@ export function drawRemoteCursors(ctx, cursors) {
   }
 }
 
-// ── Filled dot with white border ─────────────────────────────────────────────
+//Filled dot with white border
 function drawCursorDot(ctx, { x, y, color = '#ef4444' }) {
   ctx.beginPath();
   ctx.arc(x, y, 6, 0, Math.PI * 2);
@@ -36,7 +28,7 @@ function drawCursorDot(ctx, { x, y, color = '#ef4444' }) {
   ctx.stroke();
 }
 
-// ── Coloured name pill above the dot ─────────────────────────────────────────
+// goli me naam
 function drawCursorLabel(ctx, { x, y, color = '#ef4444', userName }) {
   ctx.font = 'bold 11px system-ui,sans-serif';
 

@@ -1,3 +1,5 @@
+//numbers mason, what od they mean??
+
 export function tsMillis(ts) {
   if (!ts) return 0;
   return ts?.toMillis?.() || new Date(ts).getTime();

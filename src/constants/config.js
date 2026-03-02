@@ -1,5 +1,5 @@
-// src/constants/config.js
-// Barrel re-export — all constants accessible from "constants/config"
+//basic re-export
+
 export { TOOLS, TOOL_LIST }     from './tools';
 export { COLORS, NOTE_COLORS }  from './colors';
 export { SHORTCUTS }            from './shortcuts';

@@ -1,7 +1,4 @@
-// src/components/dashboard/DashboardHeader.jsx
-//
-// Top navigation bar for the dashboard.
-// Extracted from Dashboard.jsx to keep that file focused on board list logic.
+// nav bar i think i hope
 
 import { isAdminEmail } from '../../constants/admin.js';
 

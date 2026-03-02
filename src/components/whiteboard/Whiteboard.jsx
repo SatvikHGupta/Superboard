@@ -1,3 +1,5 @@
+// main board page 
+
 import { useState, useEffect, useRef }    from 'react';
 import { TOOLS }                          from '../../constants/tools.js';
 import { SHORTCUTS }                      from '../../constants/shortcuts.js';

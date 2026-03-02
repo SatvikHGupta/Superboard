@@ -1,3 +1,5 @@
+// Pages control karo, patience test mat karo.
+
 export default function AdminBoardPagination({ currentPage, totalPages, onPage }) {
   if (totalPages <= 1) return null;
 

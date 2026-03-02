@@ -1,14 +1,4 @@
-// src/hooks/useCanvasDrag.js
-//
-// Encapsulates the drag / resize state machine that was previously inlined
-// inside Canvas.jsx.  Returns the current drag descriptor and event handlers
-// that Canvas.jsx wires to pointer events.
-//
-// v1.4.1 fix (DESIGN-4):
-//   elementId is now captured in the drag state object at tryStartDrag time,
-//   not read from the selectedId closure in handleDragMove.
-//   Previously, if selectedId changed mid-drag (e.g. a remote snapshot
-//   triggered a re-render), handleDragMove would move the wrong element.
+// drag ko safely handle karenge isse - important
 
 import { useState, useRef, useCallback } from 'react';
 import { getElementBounds, isOnResizeHandle } from '../utils/drawing/index.js';
@@ -31,12 +21,11 @@ export function useCanvasDrag({
 }) {
   const [drag, setDrag] = useState(null);
 
-  // Mirror drag into a ref so pointer-move handlers always read the latest
-  // value without needing drag in their useCallback dependency arrays.
+  // Mirror drag into a ref so pointer-move handlers always read the latest value without needing drag in their useCallback dependency arrays.
   const dragRef = useRef(null);
   dragRef.current = drag;
 
-  /* ── tryStartDrag ──────────────────────────────────────────────────────
+  /* tryStartDrag
    * Call this from pointerDown (SELECT tool, with an active selection).
    * Returns true if a drag or resize was started — caller should return early.
    */
@@ -52,13 +41,12 @@ export function useCanvasDrag({
     // Bottom-right resize handle
     if (isOnResizeHandle(pos.x, pos.y, bounds)) {
       pushToHistory(elements);
-      // Store elementId at drag-start so handleDragMove always targets the
-      // correct element even if selectedId changes during the drag.
+      // Store elementId at drag-start so handleDragMove always targets the correct element even if selectedId changes during the drag.
       setDrag({ mode: 'resize', elementId: selectedId, startX: pos.x, startY: pos.y });
       return true;
     }
 
-    // Element body — move
+    // Element body — move - yeh ishq ishq h
     const pad = 8;
     if (
       pos.x >= bounds.x - pad && pos.x <= bounds.x + bounds.w + pad &&
@@ -72,10 +60,7 @@ export function useCanvasDrag({
     return false;
   }, [elements, selectedId, pushToHistory]);
 
-  /* ── handleDragMove ────────────────────────────────────────────────────
-   * Call this from pointerMove when dragRef.current is non-null.
-   * Returns true if a drag move was processed — caller should return early.
-   */
+  /*  handleDragMove */
   const handleDragMove = useCallback((pos) => {
     const d = dragRef.current;
     if (!d) return false;
@@ -91,18 +76,14 @@ export function useCanvasDrag({
     return true;
   }, [moveElementBy, resizeElementBy]);
 
-  /* ── stopDrag ──────────────────────────────────────────────────────────
-   * Call this from pointerUp.
-   * Returns true if a drag was active and has now been cleared.
-   */
+  /* stopDrag  */
   const stopDrag = useCallback(() => {
     if (!dragRef.current) return false;
     setDrag(null);
     return true;
   }, []);
 
-  /* ── cursor helper ─────────────────────────────────────────────────────
-   * Returns the CSS cursor string appropriate for the current drag state.
+  /* cursor helper matlab Returns the CSS cursor string appropriate for the current drag state.
    */
   const dragCursor = drag
     ? (drag.mode === 'resize' ? 'nwse-resize' : 'grabbing')

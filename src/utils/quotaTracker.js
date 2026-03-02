@@ -1,15 +1,4 @@
-/**
- * quotaTracker.js — lightweight per-client daily Firestore quota tracking.
- *
- * Firebase free tier limits (per day):
- *   Reads:    50,000  — warn at 40,000
- *   Writes:   20,000  — warn at 16,000
- *   Deletes:  20,000  — (counted with writes here)
- *
- * Strategy: count in localStorage per user per UTC day.
- * We also support a "platform-wide" estimate via Firestore shared doc,
- * but that is opt-in (costs 1 extra write per session).
- */
+/* FB ka daily limit tracker but this is opt-in (costs 1 extra write per session) */
 
 const TODAY = () => new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
@@ -32,6 +21,8 @@ function getCount(type) {
 export function trackRead(n = 1)     { return increment('reads', n); }
 export function trackWrite(n = 1)    { return increment('writes', n); }
 export function trackRealtime(n = 1) { return increment('realtime', n); }
+
+//i think itni h per day (track for 24hrs, not hard reset at midnight matlab 2bhj ki unit will refresh at 2bhj next day)
 
 export const LIMITS = {
   reads:    50_000,

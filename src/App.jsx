@@ -1,8 +1,4 @@
-// src/App.jsx
-// v1.4.2: Ban check — after auth resolves, calls isBanned(uid).
-//   If the user is in /banned_users, they see an "Account Suspended" screen
-//   regardless of which route they try to access. Auth state is valid but
-//   all protected routes are blocked. They cannot navigate around the ban.
+//hum jaha khulte h superboard wahi se shuru h
 
 import { useState, useEffect, useCallback } from 'react';
 import LoginPage   from './components/LoginPage.jsx';
@@ -24,7 +20,7 @@ const ROUTES = {
   ADMIN:     'admin',
 };
 
-// ── Suspended screen ───────────────────────────────────────────────────────
+// Suspended screen
 function SuspendedPage({ ban, onLogout }) {
   return (
     <div className="error-page">
@@ -46,7 +42,7 @@ function SuspendedPage({ ban, onLogout }) {
           </div>
         )}
         <div style={{ fontSize: 13, color: 'var(--tx-4)', marginBottom: 20 }}>
-          If you believe this is a mistake, please contact the platform administrator.
+          I felt you were doing something fishy
         </div>
         <button className="btn btn-ghost" onClick={onLogout}>Sign Out</button>
       </div>
@@ -62,16 +58,12 @@ export function App() {
   // banInfo: null = not banned, object = ban record with reason/bannedAt
   const [banInfo,     setBanInfo]     = useState(null);
 
-  /* ── Firebase Auth listener ──────────────────────────────────────────── */
+  /* Firebase Auth listener - checks bans as well  */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       if (firebaseUser) {
-        // Check ban status every time auth resolves (login, page reload).
-        // Costs 1 Firestore read per session — negligible.
         const ban = await isBanned(firebaseUser.uid);
         if (ban) {
-          // Banned: don't store user in state (prevents navigating anywhere),
-          // just store the ban record so we can show the reason.
           setBanInfo(ban);
           setUser(null);
         } else {
@@ -96,7 +88,7 @@ export function App() {
     return unsubscribe;
   }, []);
 
-  /* ── Hash-based routing ──────────────────────────────────────────────── */
+  /*Hash based routing*/
   const parseHash = useCallback(() => {
     const hash = window.location.hash || '';
 
@@ -120,7 +112,7 @@ export function App() {
     return () => window.removeEventListener('hashchange', parseHash);
   }, [parseHash]);
 
-  /* ── Auth handlers ───────────────────────────────────────────────────── */
+  /* Auth handlers*/
   function handleLogin(u) {
     setUser(u);
     setPage(ROUTES.DASHBOARD);
@@ -141,7 +133,7 @@ export function App() {
     window.location.hash = '#/';
   }
 
-  /* ── Auth loading spinner ────────────────────────────────────────────── */
+  /* Auth loading spinner */
   if (authLoading) {
     return (
       <div className="error-page">
@@ -157,19 +149,17 @@ export function App() {
     );
   }
 
-  /* ── Banned user screen — shown before any route rendering ──────────── */
-  // banInfo is set even when user is not in state, so banned users
-  // always see the suspension screen and cannot access anything.
+  
   if (banInfo) {
     return <SuspendedPage ban={banInfo} onLogout={handleLogout} />;
   }
 
-  /* ── Public viewer — accessible without login ────────────────────────── */
+  /*Public viewer — accessible without login */
   if (page === ROUTES.VIEWER && boardId) {
     return <ViewerPage boardId={boardId} />;
   }
 
-  /* ── Protected routes ────────────────────────────────────────────────── */
+  /* Protected routes */
   if (!user) {
     return <LoginPage onLogin={handleLogin} />;
   }

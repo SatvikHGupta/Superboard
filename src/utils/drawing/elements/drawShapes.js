@@ -1,7 +1,4 @@
-// src/utils/drawing/elements/drawShapes.js
-//
-// Primitive shape renderers: line, rectangle, ellipse (circle), arrow.
-// Each function receives a fully configured ctx (strokeStyle, lineWidth already set).
+//shape banao, bewakoof nhi
 
 /**
  * @param {CanvasRenderingContext2D} ctx

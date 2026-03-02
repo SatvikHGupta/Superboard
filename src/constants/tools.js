@@ -1,3 +1,5 @@
+// sticks and stones break your bones but code makes me happy
+
 export const TOOLS = {
   SELECT: "select",
   PEN: "pen",

@@ -1,3 +1,5 @@
+// zeus your son has returned
+
 import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs }              from 'firebase/firestore';
 import { db }                               from '../../firebase/config.js';
@@ -62,50 +64,81 @@ export default function AdminPage({ user, onBack }) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Load boards, users, and banned-users independently so one failure
-      // doesn't block others. /users tracks everyone who has ever logged in.
+      // Boards
       const boardsSnap = await getDocs(collection(db, 'boards'));
       const boardsList = boardsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setBoards(boardsList);
 
-      // Load all tracked users (not just board owners)
-      getAllUsers()
-        .then(allUsers => {
-          // Merge board stats into user records
-          const statsMap = {};
-          boardsList.forEach(board => {
-            if (!board.ownerId) return;
-            if (!statsMap[board.ownerId]) statsMap[board.ownerId] = { boardCount: 0, lastActive: 0 };
-            statsMap[board.ownerId].boardCount++;
-            const t = board.updatedAt?.toMillis?.() || 0;
-            if (t > statsMap[board.ownerId].lastActive) statsMap[board.ownerId].lastActive = t;
-          });
-          const enriched = allUsers.map(u => ({
-            ...u,
-            name:       u.displayName || u.email,
-            boardCount: statsMap[u.uid]?.boardCount  || 0,
-            lastActive: statsMap[u.uid]?.lastActive  || u.lastSeen?.toMillis?.() || 0,
-          }));
-          setUsers(enriched);
-          setStats(prev => ({ ...prev, totalUsers: enriched.length }));
-        })
-        .catch(() => {});
-
-      getBannedUsers()
-        .then(banned => setBannedUsers(banned))
-        .catch(() => {});
-
       writeAuditLog('ADMIN_DATA_LOADED', { actorEmail: user.email }).catch(() => {});
 
+      //Per-owner stats: uid → { boardCount, lastActive } 
+      const statsMap = {};
+      boardsList.forEach(board => {
+        if (!board.ownerId) return;
+        if (!statsMap[board.ownerId]) statsMap[board.ownerId] = { boardCount: 0, lastActive: 0 };
+        statsMap[board.ownerId].boardCount++;
+        const t = board.updatedAt?.toMillis?.() || 0;
+        if (t > statsMap[board.ownerId].lastActive) statsMap[board.ownerId].lastActive = t;
+      });
+
+      //Editor map: email (lowercase) → [{id, name}] and Derived entirely from boards — zero extra Firestore reads.
+      const editorMap = {};
+      boardsList.forEach(board => {
+        (board.editors || []).forEach(email => {
+          const key = email.toLowerCase();
+          if (!editorMap[key]) editorMap[key] = [];
+          editorMap[key].push({ id: board.id, name: board.name });
+        });
+      });
+
+      // Users: /users collection + board-owner fallback
+      let trackedUsers = [];
+      try {
+        trackedUsers = await getAllUsers();
+      } catch (err) {
+        console.warn('getAllUsers() failed — falling back to board owners only:', err);
+      }
+
+      // uid-keyed map seeded from /users collection
+      const userByUid = new Map(trackedUsers.map(u => [u.uid, u]));
+
+      // Merge board owners absent from /users (historical accounts)
+      boardsList.forEach(board => {
+        if (board.ownerId && !userByUid.has(board.ownerId)) {
+          userByUid.set(board.ownerId, {
+            id:          board.ownerId,
+            uid:         board.ownerId,
+            email:       board.ownerEmail  || '',
+            displayName: board.ownerName   || '',
+          });
+        }
+      });
+
+      //Enrich and attach editorBoards
+      const enriched = [...userByUid.values()].map(u => ({
+        ...u,
+        name:         u.displayName || u.email,
+        boardCount:   statsMap[u.uid]?.boardCount  || 0,
+        lastActive:   statsMap[u.uid]?.lastActive  || u.lastSeen?.toMillis?.() || 0,
+        editorBoards: editorMap[u.email?.toLowerCase()] || [],
+      }));
+
+      setUsers(enriched);
+
+      //. Banned users
+      getBannedUsers().then(setBannedUsers).catch(() => {});
+
+      //stats
       const now        = Date.now();
       const oneWeekAgo = now - 7 * 86400000;
-      setStats(prev => ({
-        ...prev,
+      setStats({
         totalBoards:    boardsList.length,
         publicBoards:   boardsList.filter(b => b.visibility === 'public').length,
         privateBoards:  boardsList.filter(b => b.visibility === 'private').length,
+        totalUsers:     enriched.length,
         boardsThisWeek: boardsList.filter(b => (b.createdAt?.toMillis?.() || 0) > oneWeekAgo).length,
-      }));
+        activeToday:    0,
+      });
     } catch (err) { console.error('Failed to load admin data:', err); }
     setLoading(false);
   }, [user.email]);

@@ -1,4 +1,4 @@
-// src/utils/drawing/elements/drawText.js
+// texting but no reply - uski tarah
 
 import { wrapText } from '../wrapText.js';
 

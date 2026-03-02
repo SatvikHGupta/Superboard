@@ -1,7 +1,4 @@
-// src/components/ViewerPage.jsx
-//
-// B4: handleExport is now async (export functions await image preloading)
-// B4: board.name passed to export functions for correct filename
+// dekho magar pyar se
 
 import { useState, useEffect, useRef } from 'react';
 import { getBoard }        from '../firebase/boardService.js';

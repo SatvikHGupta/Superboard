@@ -1,7 +1,4 @@
-// src/utils/drawing/pointerUtils.js
-// v1.4: Extended to support touch and stylus (pen) pointer types.
-// Returns pressure and tilt data so drawFreehand can use them for
-// variable-width strokes with stylus input.
+//basically stylus support but made mouse better
 
 /* ── Pointer position relative to canvas (in logical CSS pixels) ── */
 export function getPointerPos(e, canvas) {

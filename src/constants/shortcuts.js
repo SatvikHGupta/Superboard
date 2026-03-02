@@ -1,4 +1,4 @@
-/* Maps tool ID → shortcut key (used with Shift) */
+/* Shift + letter = shortcut */
 export const SHORTCUTS = {
   select: 'S',
   pen: 'P',

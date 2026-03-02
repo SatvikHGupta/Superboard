@@ -1,9 +1,5 @@
-/* ========================================
-   SUPERBOARD — V1-Stable
-   Main Stylesheet
-   ======================================== */
+/*Jao bhai majdoori karo*/
 
-/* ---- All @import statements MUST come first ---- */
 @import './styles/variables.css';
 @import './styles/base.css';
 @import './styles/glass.css';
@@ -15,5 +11,4 @@
 @import './styles/pages.css';
 @import './styles/admin.css';
 
-/* ---- Tailwind v4 ---- */
 @import "tailwindcss";

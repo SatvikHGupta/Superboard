@@ -1,18 +1,4 @@
-// src/utils/storage.js
-//
-// Legacy localStorage helpers.
-//
-// WHAT REMAINS:
-//   getCurrentUser()  — read the cached user object written by App.jsx's
-//                       onAuthStateChanged handler.
-//   getBoardShareLink() — pure URL builder, no Firestore dependency.
-//
-// WHAT WAS REMOVED (all now in firebase/boardService.js or utils/thumbnail.js):
-//   createBoard / deleteBoard / updateBoard / getBoardById
-//   getElements / saveElements / getBoards / saveBoards
-//   addEditor / removeEditor / canUserEdit / toggleBoardVisibility
-//   updateBoardSharing / setBoardVisibility
-//   generateThumbnail → utils/thumbnail.js
+// Local storage waala chotu
 
 export function getCurrentUser() {
   try {

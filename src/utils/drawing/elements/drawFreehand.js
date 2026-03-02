@@ -1,8 +1,4 @@
-// src/utils/drawing/elements/drawFreehand.js
-// v1.4: Added pressure-sensitive variable-width strokes for stylus input.
-// Points now optionally carry { x, y, pressure } — when pressure data is
-// present and varies, the stroke is drawn as a filled polygon (variable width)
-// instead of a single stroked path.  Mouse and touch strokes are unaffected.
+//doctor banao machine - resopnsible for mobile
 
 /**
  * @param {CanvasRenderingContext2D} ctx
@@ -12,7 +8,6 @@ export function drawFreehand(ctx, el) {
   const pts = el.points;
   if (!pts || pts.length === 0) return;
 
-  // Check if this stroke has meaningful pressure variation (stylus)
   const hasPressure = pts.some(p => p.pressure !== undefined && p.pressure !== 0.5);
 
   // Single point — draw a dot
@@ -25,7 +20,7 @@ export function drawFreehand(ctx, el) {
   }
 
   if (!hasPressure) {
-    // ── Standard smooth path (mouse / touch) ────────────────────────────
+    //Standard smooth path (mouse / touch)
     if (pts.length === 2) {
       ctx.beginPath();
       ctx.moveTo(pts[0].x, pts[0].y);
@@ -47,9 +42,7 @@ export function drawFreehand(ctx, el) {
     return;
   }
 
-  // ── Pressure-sensitive variable-width stroke (stylus) ─────────────────
-  // Draw each segment as a tapered line by varying lineWidth per segment.
-  // This avoids the heavy polygon approach while still giving a natural feel.
+  //Pressure sensitive approach while still giving a natural feel.
   const baseWidth = el.strokeWidth;
   const saved = {
     lineWidth:   ctx.lineWidth,

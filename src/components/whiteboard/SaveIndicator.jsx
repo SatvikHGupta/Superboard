@@ -1,8 +1,4 @@
-// src/components/whiteboard/SaveIndicator.jsx
-//
-// Passive autosave status indicator shown in the whiteboard header left section.
-// Displays a spinner while saving, a red dot on error, or a green save icon
-// with timestamp when idle/saved.
+// saviour snape - slytherin green
 
 export default function SaveIndicator({ status, timestamp }) {
   if (status === 'saving') {

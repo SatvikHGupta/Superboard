@@ -1,5 +1,4 @@
-// src/hooks/useEraser.js
-// v1.4: markLocal.delete(id) called for each erased element.
+// Tumhari life ki galti ya uski yaade nhi mitegi
 
 import { useCallback, useRef } from 'react';
 import { hitTest } from '../utils/drawing/index.js';

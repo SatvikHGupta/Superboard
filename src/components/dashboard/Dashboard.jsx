@@ -1,15 +1,4 @@
-// src/components/dashboard/Dashboard.jsx
-// v1.4.1 optimisations:
-//   • Replaced getDocs (one-shot reads) with onSnapshot real-time listeners
-//     via onUserBoardsChange / onEditorBoardsChange.
-//     Effect: newly created boards appear instantly with zero extra reads.
-//     Each subsequent board metadata change (thumbnail, rename) triggers a
-//     1-doc incremental update, not a full collection re-fetch.
-//   • handleRefresh / refreshing state removed — no longer needed.
-//   • onCreated now receives the new boardId and navigates directly to it,
-//     so the user lands in the board immediately without a manual click.
-//   • delete / visibility-toggle still use optimistic local state updates
-//     (the listener will confirm in the background).
+//khul gaya sim sim
 
 import { useState, useEffect } from 'react';
 import {
@@ -27,7 +16,7 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
   const [editorBoards, setEditorBoards] = useState([]);
   const [loading,      setLoading]      = useState(true);
 
-  // ── Real-time owned-boards listener ──────────────────────────────────────
+  // Real-time owned-boards listener 
   useEffect(() => {
     if (!user) return;
     let initialised = false;
@@ -40,7 +29,7 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
     return unsub;
   }, [user.uid]);
 
-  // ── Real-time editor-boards listener ──────────────────────────────────────
+  // Real-time editor-boards listener 
   useEffect(() => {
     if (!user?.email) return;
     const unsub = onEditorBoardsChange(user.email, boards => {
@@ -49,10 +38,7 @@ export default function Dashboard({ user, onOpenBoard, onLogout }) {
     return unsub;
   }, [user.email]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  // After a board is created, navigate directly into it.
-  // The real-time listener will add it to the dashboard list in the background.
+  // Handlers
   function handleBoardCreated(newBoardId) {
     onOpenBoard(newBoardId);
   }

@@ -1,9 +1,9 @@
-/* admin-analytics.css — Superboard Analytics Panel */
+/*analytics ki css, wrote some of this then AI enhanced fully for final touchup*/
 
-/* ── Page layout ── */
+/* Page layout */
 .analytics-page { display: flex; flex-direction: column; gap: 20px; padding-bottom: 60px; max-width: 1200px; }
 
-/* ── Panel card ── */
+/* Panel cadr */
 .analytics-panel {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.07);
@@ -14,7 +14,7 @@
 }
 .analytics-panel:hover { box-shadow: 0 6px 32px rgba(0,0,0,0.35); }
 
-/* ── Panel header ── */
+/* Pnael header */
 .analytics-panel-header {
   display: flex;
   align-items: flex-start;
@@ -42,15 +42,15 @@
 
 .analytics-panel-sub { font-size: 12px; color: var(--tx-4); margin: 0; line-height: 1.5; padding-left: 12px; }
 
-/* ── State messages ── */
+/* State messages */
 .analytics-loading { font-size: 13px; color: var(--tx-4); padding: 28px 0; text-align: center; font-style: italic; }
 .analytics-empty   { font-size: 13px; color: var(--tx-4); padding: 28px 0; text-align: center; line-height: 1.7; }
 
-/* ── Badge ── */
+/* Badge */
 .analytics-big-badge { font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.2px; }
 
-/* ── Live users ── */
-.live-dot    { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
+/* Live users */
+.live-dot    { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse 4s ease-in-out infinite; flex-shrink: 0; }
 .live-dot-sm { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s ease-in-out infinite; flex-shrink: 0; }
 
 @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
@@ -68,7 +68,7 @@
 .live-session-users { display: flex; flex-wrap: wrap; gap: 6px; }
 .live-user-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; border: 1px solid; font-size: 12px; font-weight: 500; color: var(--tx-2); }
 
-/* ── Heatmap ── */
+/* Heatmap */
 .heatmap-grid { display: grid; gap: 3px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 6px; }
 .heatmap-col  { display: flex; flex-direction: column; gap: 3px; }
 .heatmap-cell { width: 13px; height: 13px; border-radius: 3px; background: rgba(255,255,255,0.05); flex-shrink: 0; cursor: default; transition: transform 0.1s; }
@@ -76,7 +76,7 @@
 .heatmap-cell.empty { background: transparent; }
 .heatmap-legend { display: flex; align-items: center; gap: 4px; justify-content: flex-end; margin-top: 8px; font-size: 10px; color: var(--tx-4); }
 
-/* ── Health panel ── */
+/* Health panel */
 .health-list { display: flex; flex-direction: column; gap: 10px; }
 .health-row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -86,12 +86,12 @@
 }
 .health-row:hover { background: rgba(255,255,255,0.05); }
 
-/* ── Usage table ── */
+/* Usage table */
 .analytics-panel .boards-table thead th { font-size: 10px; font-weight: 700; color: var(--a-light); text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 14px; }
 .analytics-panel .boards-table tbody td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .analytics-panel .boards-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
 
-/* ── Audit log ── */
+/* Audit log */
 .audit-log-scroll {
   max-height: 380px;
   overflow-y: auto;
@@ -113,7 +113,7 @@
 
 .audit-filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
 
-/* ── Recycle bin ── */
+/* Recycle bin */
 .admin-recycle { max-width: 860px; }
 .recycle-list  { display: flex; flex-direction: column; gap: 12px; }
 .recycle-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; flex-wrap: wrap; transition: background 0.12s; }
@@ -121,22 +121,22 @@
 .recycle-thumb { width: 56px; height: 40px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.07); }
 .recycle-thumb img { width: 100%; height: 100%; object-fit: cover; }
 
-/* ── Badges ── */
+/* Badges */
 .badge-red { background: rgba(239,68,68,0.12); color: var(--red, #ef4444); border: 1px solid rgba(239,68,68,0.25); padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 
-/* ── Heatmap range buttons ── */
+/* Heatmap range buttons */
 .heatmap-range { display: flex; gap: 4px; padding: 3px; background: rgba(255,255,255,0.04); border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); }
 .heatmap-range-btn { padding: 4px 12px; background: transparent; border: none; color: var(--tx-4); font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.12s; }
 .heatmap-range-btn.active { background: var(--a); color: white; box-shadow: 0 2px 8px var(--a-glow); }
 
-/* ── Storage table ── */
+/* Storage table */
 .storage-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
 .storage-table th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--a-light); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .storage-table td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--tx-2); }
 .storage-table tr:last-child td { border-bottom: none; }
 .storage-table tbody tr:hover td { background: rgba(255,255,255,0.025); }
 
-/* ── Responsive ── */
+/* Responsive */
 @media (max-width: 768px) {
   .analytics-panel { padding: 16px; }
   .analytics-panel-header { gap: 10px; }

@@ -1,8 +1,62 @@
-// src/components/admin/AdminUsersTab.jsx
-// v1.4.2: Ban / unban buttons on each user card.
+// kon ho bhai
 
 import { useState } from 'react';
 import UserBoardsModal from './UserBoardsModal.jsx';
+
+function EditorBoardsList({ boards }) {
+  const [open, setOpen] = useState(false);
+  if (!boards || boards.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '2px 8px', borderRadius: 'var(--r-full)',
+          background: 'rgba(59,130,246,0.12)',
+          border: '1px solid rgba(59,130,246,0.28)',
+          color: '#3b82f6', fontSize: 11, fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+        Editor on {boards.length} board{boards.length !== 1 ? 's' : ''}
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            marginTop: 5, padding: '6px 10px',
+            borderRadius: 'var(--r-md)',
+            background: 'rgba(59,130,246,0.06)',
+            border: '1px solid rgba(59,130,246,0.18)',
+            display: 'flex', flexDirection: 'column', gap: 3,
+          }}
+        >
+          {boards.map(b => (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tx-3)' }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {b.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminUsersTab({ users, bannedUsers = [], onBanUser, onUnbanUser, formatRelativeTime, formatDate }) {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -53,15 +107,19 @@ export default function AdminUsersTab({ users, bannedUsers = [], onBanUser, onUn
                 <div className="user-stats">
                   <div className="user-stat">
                     <span className="user-stat-value">{u.boardCount}</span>
-                    <span className="user-stat-label">Boards</span>
+                    <span className="user-stat-label">Owned</span>
                   </div>
                   <div className="user-stat">
                     <span className="user-stat-value">{formatRelativeTime(u.lastActive)}</span>
                     <span className="user-stat-label">Last Active</span>
                   </div>
                 </div>
+
+                {/* Boards this user is an editor on */}
+                <EditorBoardsList boards={u.editorBoards} />
+
                 <div style={{ marginTop: 10, fontSize: 12, color: 'var(--a)', fontWeight: 500 }}>
-                  View boards →
+                  View owned boards →
                 </div>
               </button>
 

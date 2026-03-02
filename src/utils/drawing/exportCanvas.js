@@ -1,14 +1,10 @@
-// src/utils/drawing/exportCanvas.js
-//
-// B4: both functions are now async — they await image preloading before render
-// B4: boardName parameter → filename = sanitised board name
-// B10: preloadImages() ensures all pasted images are decoded before export
+//pdf/png changer
 
 import jsPDF from 'jspdf';
 import { renderCanvas } from './renderCanvas.js';
 import { getCachedImage } from './imageCache.js';
 
-// ── Sanitise board name for use as a filename ──────────────────────────
+// boardname = exported file name . (extension)
 function safeFilename(boardName) {
   return (boardName || 'whiteboard')
     .trim()
@@ -19,7 +15,7 @@ function safeFilename(boardName) {
     || 'whiteboard';
 }
 
-// ── Wait for all image elements to decode before rendering ────────────
+// let image be decoded
 function preloadImages(elements) {
   const imageEls = elements.filter(el => el.type === 'image' && el.imageData);
   if (imageEls.length === 0) return Promise.resolve();
@@ -37,7 +33,7 @@ function preloadImages(elements) {
   return Promise.all(promises);
 }
 
-// ── Export as PNG ──────────────────────────────────────────────────────
+// Export as PNG
 export async function exportAsPNG(elements, boardWidth, boardHeight, boardName) {
   // Wait for all images to be fully decoded
   await preloadImages(elements);
@@ -57,7 +53,7 @@ export async function exportAsPNG(elements, boardWidth, boardHeight, boardName) 
   return { url: c.toDataURL('image/png'), filename };
 }
 
-// ── Export as PDF ──────────────────────────────────────────────────────
+// Export as PDF
 export async function exportAsPDF(elements, boardWidth, boardHeight, boardName) {
   await preloadImages(elements);
 

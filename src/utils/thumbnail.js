@@ -1,14 +1,11 @@
-// src/utils/thumbnail.js
-//
-// Canvas thumbnail generator — extracted from storage.js so useBoardPersistence
-// can import it directly without pulling in the legacy localStorage helpers.
+// Smile - famous hone waale ho
 
 export function generateThumbnail(canvasEl) {
   if (!canvasEl) return null;
   try {
     const dpr = window.devicePixelRatio || 1;
 
-    // Get the CSS pixel dimensions of the source canvas
+    // Get CSS px of source
     const srcCSSWidth  = canvasEl.width  / dpr;
     const srcCSSHeight = canvasEl.height / dpr;
 
@@ -16,11 +13,11 @@ export function generateThumbnail(canvasEl) {
     const thumbW = 400;
     const thumbH = 225;
 
-    // Calculate how much of the top of the canvas to grab
+    // Padko top ko
     const scale        = thumbW / srcCSSWidth;
     const srcCropH     = Math.min(srcCSSHeight, thumbH / scale);
 
-    // Source coordinates in actual canvas pixels (accounting for DPR)
+    // Source coordinates 
     const sw = canvasEl.width;
     const sh = srcCropH * dpr;
 
@@ -33,7 +30,7 @@ export function generateThumbnail(canvasEl) {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, thumbW, thumbH);
 
-    // Draw the top portion of the main canvas scaled to fill thumbnail width
+    // Draw top
     ctx.drawImage(canvasEl, 0, 0, sw, sh, 0, 0, thumbW, srcCropH * scale);
 
     return thumb.toDataURL('image/jpeg', 0.7);

@@ -1,13 +1,5 @@
-/**
- * LiveUsersPanel — uses polling getDocs instead of onSnapshot(collectionGroup).
- *
- * WHY: onSnapshot on a collectionGroup query triggers a known Firebase SDK bug:
- * when it gets permission-denied, the SDK's internal state machine crashes
- * (INTERNAL ASSERTION FAILED: Unexpected state ID: ca9 → b815), which then
- * breaks ALL subsequent Firestore operations for the entire session.
- * Polling getDocs fails gracefully with a catchable error and never corrupts
- * the SDK state.
- */
+// abhi kon active h
+
 import { useState, useEffect, useRef } from 'react';
 import { collectionGroup, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/config.js';
@@ -34,8 +26,7 @@ export default function LiveUsersPanel() {
       setSessions(alive);
       setError(null);
     } catch (err) {
-      // Permission-denied means the collectionGroup rule isn't published yet.
-      // Show a clear message instead of crashing.
+      // Permission-denied means the collectionGroup rule isn't published yet, Show a clear message instead of crashing.
       if (err?.code === 'permission-denied') {
         setError('pending-rules');
       } else {

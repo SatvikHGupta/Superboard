@@ -1,3 +1,5 @@
+// Search filter bulk delete. Power tools.
+
 export default function AdminBoardToolbar({
   searchQuery, onSearch, filterVisibility, onFilter,
   selectedCount, totalFiltered, viewMode, onViewMode,

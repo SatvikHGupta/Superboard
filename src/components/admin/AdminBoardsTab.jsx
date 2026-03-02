@@ -1,3 +1,5 @@
+// Boards pe nazar rakho warna bhaag jayenge.
+
 import { useState } from 'react';
 import AdminBoardToolbar   from './AdminBoardToolbar.jsx';
 import AdminBoardGrid      from './AdminBoardGrid.jsx';

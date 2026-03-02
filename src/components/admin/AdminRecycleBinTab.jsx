@@ -1,7 +1,4 @@
-// src/components/admin/AdminRecycleBinTab.jsx
-//
-// Shows boards soft-deleted by admin. Each entry shows how long until
-// permanent deletion (30-day TTL). Admin can restore or permanently purge.
+// jaane nhi, denge tujhe
 
 import { useState, useEffect } from 'react';
 import { getSoftDeletedBoards, restoreBoard, purgeSoftDeletedBoard } from '../../firebase/boardService.js';

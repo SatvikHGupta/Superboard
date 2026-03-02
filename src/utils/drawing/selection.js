@@ -1,7 +1,6 @@
-// ─── Selection Highlight ─────────────────────────────
-// Draws a dashed indigo border with corner handles around selected element.
-// Bottom-right handle is a square (resize affordance).
+// blue = good
 
+//selection highlight
 export function drawSelectionHighlight(ctx, el) {
   ctx.save();
   const bounds = getElementBounds(el);
@@ -42,8 +41,7 @@ export function drawSelectionHighlight(ctx, el) {
   ctx.restore();
 }
 
-// ─── Resize Handle Detection ─────────────────────────
-// isOnResizeHandle(x, y, bounds) — bounds from getElementBounds
+// Resize Handle Detection 
 export function isOnResizeHandle(x, y, bounds) {
   if (!bounds) return false;
   const pad = 8;
@@ -52,7 +50,7 @@ export function isOnResizeHandle(x, y, bounds) {
   return Math.abs(x - hx) < 12 && Math.abs(y - hy) < 12;
 }
 
-// ─── Bounding Box Calculator ─────────────────────────
+// Bounding Box Calculator
 
 export function getElementBounds(el) {
   switch (el.type) {

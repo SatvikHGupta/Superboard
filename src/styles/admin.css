@@ -1,12 +1,8 @@
+/*NOT even lying this was 631 line before ai enhanced then it jumped to 1400 in 3/4 tries, had to again ask to break into sections - do not touch this, super heavy css file - can be used to train small projects alone by itself i think - sahi me do not touch this*/
+
+
 /* ========================================
-   ADMIN PANEL STYLES — Superboard v1.5.2
-   Based on original improved stylesheet,
-   extended with:
-     • --a-glow variable declaration (fix)
-     • Compact header + live/user badge
-     • Keyboard hints in tabs bar
-     • Board Details Modal z-index + scroll fixes
-     • Recycle bin styles
+   ADMIN PANEL STYLES — Superboard
    Sections:
      1.  CSS Variables
      2.  Page shell
@@ -31,10 +27,6 @@
 
 /* ─────────────────────────────────────────
    1. CSS VARIABLES
-   ─────────────────────────────────────────
-   FIX: --a-glow was referenced throughout but
-   never declared; all box-shadows, glows, and
-   tints now resolve correctly.
    ───────────────────────────────────────── */
 
 :root {
@@ -1354,14 +1346,7 @@
 /* ─────────────────────────────────────────
    15. BOARD DETAILS MODAL
    ─────────────────────────────────────────
-   Fix 1 — z-index: Modal backdrop raised to
-   200 so it sits above sticky header (100)
-   and sticky tabs bar (90).
-
-   Fix 2 — Single scroll source: .modal-body
-   scrolls; .modal-content does NOT, which
-   eliminates the double-scrollbar bug.
-   ───────────────────────────────────────── */
+ */
 
 /* Override the global modal-backdrop z-index for this specific modal */
 .board-details-modal-backdrop {

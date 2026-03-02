@@ -1,3 +1,5 @@
+//set default 
+
 export const DEFAULTS = {
   tool: 'pen',
   color: '#000000',

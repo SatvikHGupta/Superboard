@@ -1,13 +1,9 @@
-// src/utils/drawing/wrapText.js
-//
-// Word-wrap utility shared by drawText and drawNote.
-// Splits text into lines that fit within maxWidth.
-// Handles: newlines, word wrapping, character-level breaks for very long words.
+// line break karega then word break then letter break i hope
 
 /**
  * @param {CanvasRenderingContext2D} ctx
  * @param {string} text
- * @param {number|null} maxWidth  — null / 0 means no wrapping (split on \n only)
+ * @param {number|null} maxWidth  
  * @returns {string[]}
  */
 export function wrapText(ctx, text, maxWidth) {

@@ -1,9 +1,9 @@
-
+// Hacker ki jagah heckler ban gaye
 
 import { signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth, googleProvider } from './config.js';
 
-/* Sign in with Google popup */
+/* Google popup */
 export async function signInWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -24,7 +24,7 @@ export async function signOut() {
   }
 }
 
-/* Get current user */
+/* Pakdo */
 export function getCurrentUser() {
   return auth.currentUser;
 }

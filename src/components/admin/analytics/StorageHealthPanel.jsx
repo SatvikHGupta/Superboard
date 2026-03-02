@@ -1,3 +1,5 @@
+//firestore bag ?
+
 import { useState } from 'react';
 import { getDocs, collection } from 'firebase/firestore';
 import { db } from '../../../firebase/config.js';

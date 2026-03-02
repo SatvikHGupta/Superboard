@@ -1,3 +1,5 @@
+// a4 to math grid toggle
+
 import { DEFAULTS } from "../../constants/config";
 
 export function drawBoxGrid(ctx, width, height) {

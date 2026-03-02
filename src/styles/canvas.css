@@ -1,4 +1,3 @@
-
 /* ---- Whiteboard Layout ---- */
 .whiteboard-layout {
   display: flex;
@@ -148,29 +147,88 @@
   transform: translateY(0);
 }
 
-/* ---- Mobile adjustments ---- */
-@media (max-width: 680px) {
+/* ---- Tablet adjustments (681px – 1024px) ---- */
+@media (min-width: 681px) and (max-width: 1024px) {
   .whiteboard-main {
-    padding: 10px;
-    padding-bottom: 68px; /* clear bottom toolbar */
+    padding: 16px;
+    /* Clear the fixed bottom toolbar (62px) */
+    padding-bottom: 78px;
     align-items: flex-start;
     justify-content: flex-start;
-    /* Allow vertical scroll so board can be scrolled after scale */
     overflow-y: auto;
     overflow-x: hidden;
   }
 
+  .extend-btn {
+    /* Sit above the fixed bottom toolbar */
+    bottom: 78px;
+    right: 16px;
+  }
+
   .wb-header {
-    padding: 6px 10px;
+    padding: 7px 14px;
+  }
+
+  .wb-header-title {
+    max-width: 160px;
+  }
+}
+
+/* ---- Mobile adjustments (≤680px) ---- */
+@media (max-width: 680px) {
+  .whiteboard-main {
+    padding: 10px;
+    /* Clear the fixed bottom toolbar (58px) + breathing room */
+    padding-bottom: 70px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Header: prevent center group from colliding with right buttons */
+  .wb-header {
+    padding: 5px 8px;
+    gap: 4px;
+  }
+
+  .wb-header-left {
+    flex: 1;
+    min-width: 0;
+    gap: 4px;
   }
 
   .wb-header-title {
     font-size: 13px;
-    max-width: 110px;
+    max-width: 100px;
+  }
+
+  /* Center section: undo/redo/clear/grid/save — clamp width + horizontal scroll */
+  .wb-header-center {
+    flex: 0 0 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    /* Prevent it from pushing the right section off screen */
+    max-width: calc(100vw - 170px);
+    gap: 2px;
+  }
+  .wb-header-center::-webkit-scrollbar { display: none; }
+
+  /* Right: export / share — never shrinks */
+  .wb-header-right {
+    flex-shrink: 0;
+    gap: 2px;
+  }
+
+  /* Slightly smaller icon buttons in header */
+  .wb-header .btn-icon {
+    width: 34px;
+    height: 34px;
   }
 
   .extend-btn {
-    bottom: 68px;
+    bottom: 70px;
     right: 12px;
     font-size: 12px;
     padding: 8px 12px;
@@ -181,7 +239,6 @@
     font-size: 16px !important; /* Prevent iOS zoom on focus */
   }
 
-  /* On small screens, center the scale wrapper and allow natural height */
   .canvas-scale-wrapper {
     transform-origin: top left;
     margin: 0 auto;

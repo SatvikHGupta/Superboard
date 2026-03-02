@@ -1,10 +1,4 @@
-// src/firebase/auditService.js
-//
-// Writes to /admin/logs/{auto-id} whenever key platform events happen.
-// Admin panel reads these to show: audit trail, per-user Firebase usage.
-//
-// Cost: 1 write per action (not per element). Total ~10–50 writes/day for
-// a small team. Negligible on the free tier.
+// ai generated h ye, basic legder ek tarah se
 
 import {
   collection, addDoc, getDocs, query,

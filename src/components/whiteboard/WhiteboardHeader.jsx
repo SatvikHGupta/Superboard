@@ -109,7 +109,9 @@ export default function WhiteboardHeader({
         <SaveIndicator status={saveStatus} timestamp={saveTimestamp} />
       </div>
 
-      {/* ── Centre: undo · redo · clear · grid · manual save ── */}
+      {/* ── Centre: undo · redo · clear · grid · manual save ──
+           On mobile this section scrolls horizontally inside a clamped
+           max-width so it can never collide with the right section. ── */}
       <div className="wb-header-center">
         <button className="btn-icon" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -154,7 +156,7 @@ export default function WhiteboardHeader({
 
         <div className="toolbar-divider" />
 
-        {onManualSave && <ManualSaveButton onSave={onManualSave} />}
+        {onManualSave && <ManualSaveButton onSave={onManualSave} iconOnly />}
       </div>
 
       {/* ── Right: export · share · shortcuts ── */}

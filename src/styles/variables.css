@@ -1,40 +1,37 @@
-/* ========================================
-   DESIGN SYSTEM — CSS CUSTOM PROPERTIES
-   V1-Stable | Whiteboard App
-   ======================================== */
+/*jo jaisa dikhta woh iski wajah se dikhta h*/
 
 :root {
-  /* ---- Background tiers (dark to light) ---- */
+  /*Background tiers (dark to light) */
   --bg-0: #06080d;
   --bg-1: #0c1017;
   --bg-2: #121821;
   --bg-3: #1a2233;
   --bg-4: #243044;
 
-  /* ---- Border tones ---- */
+  /*  Border tones  */
   --br-1: rgba(255, 255, 255, 0.06);
   --br-2: rgba(255, 255, 255, 0.1);
   --br-3: rgba(255, 255, 255, 0.16);
 
-  /* ---- Text tones ---- */
+  /*  Text tones */
   --tx-1: #f1f5f9;
   --tx-2: #94a3b8;
   --tx-3: #64748b;
   --tx-4: #475569;
 
-  /* ---- Accent (Indigo) ---- */
+  /* Accent (Indigo) */
   --a: #6366f1;
   --a-light: #818cf8;
   --a-dark: #4f46e5;
   --a-glow: rgba(99, 102, 241, 0.25);
 
-  /* ---- Semantic ---- */
+  /* Semantic */
   --green: #22c55e;
   --red: #ef4444;
   --amber: #f59e0b;
   --blue: #3b82f6;
 
-  /* ---- Radius scale ---- */
+  /* Radius scale  */
   --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
@@ -43,14 +40,14 @@
   --r-full: 9999px;
   --r-pill: 9999px;
 
-  /* ---- Shadow scale ---- */
+  /* Shadow scale  */
   --sh-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
   --sh-md: 0 4px 12px rgba(0, 0, 0, 0.4);
   --sh-lg: 0 8px 24px rgba(0, 0, 0, 0.45);
   --sh-xl: 0 12px 40px rgba(0, 0, 0, 0.5);
   --sh-glow: 0 0 20px var(--a-glow), 0 0 60px rgba(99, 102, 241, 0.1);
 
-  /* ---- Transitions ---- */
+  /* tranisitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur-fast: 150ms;

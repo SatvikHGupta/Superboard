@@ -1,4 +1,4 @@
-// src/utils/drawing/elements/drawImage.js
+// images ke liye - not optimsed, will lag if many
 
 import { getCachedImage } from '../imageCache.js';
 

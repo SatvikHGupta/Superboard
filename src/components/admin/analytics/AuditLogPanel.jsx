@@ -1,3 +1,5 @@
+//admin bhi safe nhi h
+
 import { useState } from 'react';
 
 const COST_COLOR = { write: '#f59e0b', read: '#3b82f6', realtime: '#8b5cf6' };

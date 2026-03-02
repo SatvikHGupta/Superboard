@@ -1,3 +1,5 @@
+// Confirm before regret - 2 step verfiaction
+
 import { useState, useEffect } from 'react';
 
 export function ConfirmModal({ title, message, confirmLabel = 'Confirm', danger = true, onConfirm, onCancel, typeToConfirm }) {

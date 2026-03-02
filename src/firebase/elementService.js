@@ -1,8 +1,4 @@
-// src/firebase/elementService.js
-// v1.4: No API changes — all existing exports preserved.
-// setElement (single doc write) is now used by useBoardPersistence for
-// individual dirty element flushes, enabling per-element writes that don't
-// overwrite concurrent users' work.
+// element actions
 
 import {
   collection, doc, setDoc, deleteDoc,
@@ -12,18 +8,18 @@ import { db } from './config.js';
 
 const CHUNK_SIZE = 490;
 
-/* ── Add / update a single element ──────────────────────────────────────── */
+/* add/update 1 shit */
 export async function setElement(boardId, element) {
   const ref = doc(db, 'boards', boardId, 'elements', element.id);
   await setDoc(ref, { ...element, updatedAt: serverTimestamp() });
 }
 
-/* ── Delete a single element ─────────────────────────────────────────────── */
+/* 1 khoon maaf */
 export async function removeElement(boardId, elementId) {
   await deleteDoc(doc(db, 'boards', boardId, 'elements', elementId));
 }
 
-/* ── Batch write — chunked to stay under Firestore's 500-op limit ────────── */
+/* Batch write to be under 500 for FB */
 export async function batchSetElements(boardId, elements) {
   if (!elements || elements.length === 0) return;
 
@@ -38,7 +34,7 @@ export async function batchSetElements(boardId, elements) {
   }
 }
 
-/* ── Batch delete ─────────────────────────────────────────────────────────── */
+/* Batch delete */
 export async function batchDeleteElements(boardId, elementIds) {
   if (!elementIds || elementIds.length === 0) return;
 
@@ -52,7 +48,7 @@ export async function batchDeleteElements(boardId, elementIds) {
   }
 }
 
-/* ── Listen to all elements (real-time) ──────────────────────────────────── */
+/* Real time */
 export function onElementsChange(boardId, callback) {
   const ref = collection(db, 'boards', boardId, 'elements');
   return onSnapshot(ref, snap => {

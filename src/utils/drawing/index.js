@@ -1,5 +1,4 @@
-// src/utils/drawing/index.js
-// Barrel re-export — all drawing utils accessible from 'utils/drawing'
+// railway station
 
 export { generateId }                                       from './idGenerator.js';
 export { getCachedImage, cacheImage, clearImageCache }      from './imageCache.js';

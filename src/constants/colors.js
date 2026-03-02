@@ -1,3 +1,5 @@
+//me hu leonardo dicaprio ka pallete
+
 export const COLORS = [
   '#000000',
   '#EF4444',

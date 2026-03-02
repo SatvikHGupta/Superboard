@@ -1,5 +1,4 @@
-// ─── Hit Testing ─────────────────────────────────────
-// Returns the topmost element at a given position, or null.
+// tappad ka nishan aaya?
 
 export function hitTest(elements, pos, threshold) {
   const t = threshold || 8;

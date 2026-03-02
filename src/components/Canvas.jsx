@@ -1,3 +1,5 @@
+//nazm nazm sa mere, canvas pe aake chal ja
+
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { TOOLS }             from '../constants/tools.js';
 import { NOTE_COLORS }       from '../constants/colors.js';
@@ -10,14 +12,7 @@ import CanvasTextOverlay     from './CanvasTextOverlay.jsx';
 
 const CURSOR_THROTTLE_MS = 500; // broadcast cursor position at most 2×/sec
 
-/**
- * The primary drawing surface.
- *
- * Scaling: the pixel buffer is always full resolution (boardWidth × dpr),
- * but the CSS display size is boardWidth × scale. getPointerPos reads
- * getBoundingClientRect() which returns scaled CSS dimensions, so coordinate
- * conversion is automatic — no extra math needed in pointer handlers.
- */
+
 export default function Canvas({
   elements, currentElement, tool, color, strokeWidth, fontSize,
   boardWidth, boardHeight, showGrid, selectedId,
@@ -70,8 +65,7 @@ export default function Canvas({
     canvas.style.height = (boardHeight * scale) + 'px';
   }, [boardWidth, boardHeight, scale]);
 
-  // Permanent RAF render loop — single loop, never recreated on prop changes.
-  // Reads all volatile values through refs so the loop closure stays stable.
+  // Permanent RAF render loop — single loop, never recreated on prop changes. Reads all volatile values through refs so the loop closure stays stable.
   useEffect(() => {
     function draw() {
       const canvas = canvasRef.current;
@@ -172,7 +166,7 @@ export default function Canvas({
               startScrollTop:  scrollEl.scrollTop,
               el: scrollEl,
             };
-            canvas.releasePointerCapture(e.pointerId); // don't capture — let scroll happen
+            canvas.releasePointerCapture(e.pointerId); 
           }
         }
         selectAtPoint(pos.x, pos.y);

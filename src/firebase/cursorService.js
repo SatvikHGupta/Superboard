@@ -1,17 +1,4 @@
-// src/firebase/cursorService.js
-// v1.4.1 optimisations:
-//   • serverTimestamp() removed from broadcastCursor.
-//     serverTimestamp() requires a server round-trip on every write — for
-//     cursor positions updated 25+ times/sec this was the single largest
-//     Firebase cost driver.  Replaced with Date.now() (client clock).
-//     Cursor data is ephemeral so server-authoritative time is unnecessary.
-//   • broadcastCursor is now fire-and-forget (no await, errors silenced).
-//     Cursor writes do not block the pointer-move handler and a dropped
-//     cursor frame is invisible to users.
-//   • { merge: true } added so Firestore only diffs the changed fields
-//     rather than rewriting the full cursor document on every update.
-//   • Throttle is now enforced here as well as in Canvas.jsx so callers
-//     that forget to throttle don't accidentally flood Firestore.
+//80ms cursor update ki full logic
 
 import {
   doc, setDoc, deleteDoc, collection, onSnapshot,
@@ -23,17 +10,13 @@ const CURSOR_COLORS = [
   '#8b5cf6', '#ec4899', '#14b8a6', '#f97316',
 ];
 
-// Per-user throttle state — prevents flooding if caller doesn't throttle
+// Per-user throttle state matlab prevents flooding if caller doesn't throttle
 const lastBroadcastTime = new Map();
-const BROADCAST_MIN_INTERVAL_MS = 80; // hard floor; Canvas throttles to 500ms
+const BROADCAST_MIN_INTERVAL_MS = 80; // hard flooring; Canvas throttles to 500ms
 
-/**
- * Broadcast cursor position. Fire-and-forget — never awaited by callers.
- * Skips write when the tab is not visible (user has switched away).
- */
+/*Boardcasting cursor */
 export function broadcastCursor(boardId, userId, userName, x, y) {
-  // Don't write cursors when the tab is hidden — saves writes for users who
-  // have the board open in a background tab.
+  // Don't write cursors when the tab is hidden  matlab saves writes for users who have the board open in a background tab.
   if (document.hidden) return;
 
   const now = Date.now();
@@ -42,28 +25,24 @@ export function broadcastCursor(boardId, userId, userName, x, y) {
   lastBroadcastTime.set(userId, now);
 
   const ref = doc(db, 'boards', boardId, 'cursors', userId);
-  // setDoc with merge:true only sends changed fields to Firestore.
-  // No await — cursor writes are best-effort.
   setDoc(ref, {
     userId,
     userName,
     x,
     y,
     color: CURSOR_COLORS[hashCode(userId) % CURSOR_COLORS.length],
-    lastUpdate: now,  // client timestamp — no server round-trip
+    lastUpdate: now,  
   }, { merge: true }).catch(() => {
-    // Silently swallow cursor write failures.
-    // A dropped cursor frame is completely invisible to users.
   });
 }
 
-/** Remove cursor doc when user leaves the board. */
+/*new tab khulega toh gayab */
 export async function removeCursor(boardId, userId) {
   lastBroadcastTime.delete(userId);
   await deleteDoc(doc(db, 'boards', boardId, 'cursors', userId));
 }
 
-/** Subscribe to all remote cursors (excludes the current user). */
+/*user ke alawa */
 export function onCursorsChange(boardId, currentUserId, callback) {
   const ref = collection(db, 'boards', boardId, 'cursors');
   return onSnapshot(ref, snap => {

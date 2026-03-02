@@ -1,13 +1,4 @@
-// src/components/ShareModal.jsx
-// v1.4 fixes:
-// • Adding a non-signed-up email no longer freezes the modal.
-//   The freeze was caused by the parent's onBoardChange listener re-rendering
-//   the whole tree while saving=true — the saving flag now uses a local
-//   operation ref that doesn't affect the disabled state of the close button.
-// • Email validation is stricter (proper regex, not just includes('@')).
-// • Duplicate email check is case-insensitive.
-// • Error messages are shown inline instead of alert() calls.
-// • The close button (×) always remains clickable regardless of saving state.
+// share karo lekin aukat me
 
 import { useState, useEffect, useRef } from 'react';
 import { getBoard, updateBoard } from '../firebase/boardService.js';
@@ -82,12 +73,7 @@ export default function ShareModal({ boardId, boardData: initialBoardData, onBoa
       setEditorEmail('');
       inputRef.current?.focus();
     } catch (err) {
-      // This is the fix for the "freeze on non-signed-up email" bug.
-      // updateBoard only updates the board document (which the owner can always
-      // write). It does NOT validate whether the email belongs to a real user —
-      // that check happens at draw-time via Firebase rules. So this should
-      // never throw permission-denied for a valid owner. If it does, show a
-      // clear message rather than leaving the modal in a disabled state.
+      //non signed up gmail user fix here
       if (err?.code === 'permission-denied') {
         setErrorMsg('You don\'t have permission to share this board.');
       } else {

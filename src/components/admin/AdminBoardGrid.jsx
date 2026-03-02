@@ -1,3 +1,5 @@
+// Fancy grid view for serious scrolling.
+
 export default function AdminBoardGrid({ boards, selectedBoards, onToggleSelect, onView, onToggleVisibility, onDelete }) {
   return (
     <div className="boards-grid">

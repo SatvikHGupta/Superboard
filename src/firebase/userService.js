@@ -1,6 +1,4 @@
-// src/firebase/userService.js
-// Tracks every user who has ever logged into Superboard.
-// setDoc with merge:true = no-op if data unchanged = effectively free for returning users.
+//i am stalking you - shg
 
 import {
   doc, setDoc, getDoc, getDocs, collection, serverTimestamp
@@ -9,7 +7,7 @@ import { db } from './config.js';
 
 const ref = (uid) => doc(db, 'users', uid);
 
-/**
+/* important
  * Called on every successful auth resolve.
  * Upserts the user record; sets firstSeen only once.
  */
@@ -32,27 +30,20 @@ export async function trackUserLogin(user) {
       }, { merge: true });
     }
   } catch (_) {
-    // Non-critical — never block the auth flow
+    // Non-critical meaning never block the auth flow
   }
 }
 
-/**
- * Get all tracked users (admin panel only).
- */
+/*all users for admin*/
 export async function getAllUsers() {
   const snap = await getDocs(collection(db, 'users'));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-/**
- * Track an anonymous public board view.
- * Stores a lightweight record in /public_views/{boardId}/sessions/{sessionId}.
- * Used by ViewerPage so we can count how many people view public boards.
- * Costs 1 Firestore write per anonymous visitor per board per day.
- */
+/*track public board visitor - 1 write per visit*/
+
 export async function trackPublicView(boardId) {
   try {
-    // Use sessionStorage to avoid duplicate writes on re-render
     const key = `sb_view_${boardId}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');

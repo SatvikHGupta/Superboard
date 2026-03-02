@@ -1,3 +1,5 @@
+// Table lovers ke liye classic view
+
 export default function AdminBoardList({ boards, selectedBoards, allFiltered, onToggleSelect, onSelectAll, onClearAll, onView, onToggleVisibility, onDelete, formatRelativeTime }) {
   const allSelected = selectedBoards.length === allFiltered && allFiltered > 0;
 

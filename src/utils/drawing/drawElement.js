@@ -1,8 +1,4 @@
-// src/utils/drawing/drawElement.js
-//
-// Thin dispatcher — sets up shared canvas state then delegates to the
-// appropriate element renderer.  All actual drawing logic lives in
-// utils/drawing/elements/*.js so each shape type is independently editable.
+// kya kaise kon draw hoga
 
 import { drawFreehand }                          from './elements/drawFreehand.js';
 import { drawLine, drawRectangle,

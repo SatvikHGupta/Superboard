@@ -84,7 +84,8 @@
   border-radius: var(--r-lg);
   box-shadow: var(--sh-lg);
   padding: 6px;
-  z-index: 40;
+  /* FIX: raised above fixed bottom toolbar (z-index 40) and sticky header (z-index 30) */
+  z-index: 200;
   animation: slideUp var(--dur-fast) var(--ease-out);
 }
 

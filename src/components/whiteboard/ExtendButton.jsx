@@ -1,3 +1,5 @@
+//add 3 inches
+
 export default function ExtendButton({ onExtend }) {
   return (
     <button className="extend-btn" onClick={onExtend} title="Extend board downward">

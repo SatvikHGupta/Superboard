@@ -1,5 +1,4 @@
-// src/components/admin/BoardDetailsModal.jsx
-// v1.5.2: No sliders, fixed z-index (200), single scroll source on .modal-content.
+//isko touch nhi karna h
 
 import { useState } from 'react';
 

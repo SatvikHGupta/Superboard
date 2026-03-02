@@ -1,6 +1,4 @@
-// src/hooks/useHistory.js
-// v1.4: markLocal passed in to track element additions/deletions through
-// undo/redo/clearAll operations.
+// i know what you did last (ctrl z/y)
 
 import { useCallback, useRef, useState } from 'react';
 

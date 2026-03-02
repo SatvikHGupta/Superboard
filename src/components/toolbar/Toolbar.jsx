@@ -1,7 +1,4 @@
-// src/components/toolbar/Toolbar.jsx
-//
-// B3: accept canDraw prop — when false (viewer/stranger), entire toolbar
-//     is visually dimmed and all inputs are disabled.
+// omnitrix
 
 import { TOOLS, TOOL_LIST } from '../../constants/tools.js';
 import { COLORS }           from '../../constants/colors.js';

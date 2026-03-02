@@ -1,6 +1,4 @@
-// src/hooks/useDrawingActions.js
-// v1.4: markLocal.add(id) called when each element is finalized so persistence
-// hook knows to write it. No other logic changes.
+// majnu bhai
 
 import { useState, useCallback } from 'react';
 import { TOOLS }                 from '../constants/tools.js';

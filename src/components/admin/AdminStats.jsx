@@ -1,4 +1,4 @@
-// src/components/admin/AdminStats.jsx
+// ai made this up - works though
 
 export default function AdminStats({ stats }) {
   const {

@@ -1,20 +1,11 @@
-// src/hooks/useSelection.js
-// v1.4.1 fixes:
-// • markLocal parameter added (BUG-3 fix).
-// • moveElementBy and resizeElementBy call markLocal.add(id) so that dragging
-//   or resizing ANY element — including one drawn by a remote user — is
-//   registered as a local change and persisted on the next autosave.
-//   Previously, moving a remote element only updated local React state; the
-//   next Firestore snapshot would overwrite it with the original position.
-// • deleteSelected calls markLocal.delete(id) so deleted elements are queued
-//   for server removal even when deleted via keyboard shortcut.
+// gymfreaks cant move this
 
 import { useCallback } from 'react';
 import { hitTest } from '../utils/drawing/index.js';
 
 export function useSelection(setElements, selectedId, setSelectedId, pushToHistory, markLocal) {
 
-  /* ── Select element at (x, y) ─────────────────── */
+  /*  Select element at (x, y)  */
   const selectAtPoint = useCallback((x, y) => {
     setElements((curr) => {
       const found = hitTest(curr, { x, y }, 8);
@@ -23,7 +14,7 @@ export function useSelection(setElements, selectedId, setSelectedId, pushToHisto
     });
   }, [setElements, setSelectedId]);
 
-  /* ── Delete selected ──────────────────────────── */
+  /*  Delete selected  */
   const deleteSelected = useCallback(() => {
     if (!selectedId) return;
     setElements((prev) => {
@@ -37,12 +28,10 @@ export function useSelection(setElements, selectedId, setSelectedId, pushToHisto
     });
   }, [selectedId, setElements, setSelectedId, pushToHistory, markLocal]);
 
-  /* ── Move element by incremental (dx, dy) ─────── */
+  /*  Move element by incremental (dx, dy) */
   const moveElementBy = useCallback((id, dx, dy) => {
     if (!id) return;
-    // Register as local so the updated position is saved — this is the
-    // BUG-3 fix: without this, dragging a remote element would be lost on
-    // the next Firestore snapshot that overwrites state with server data.
+    // local save ke baad firebase update
     markLocal?.add(id);
     setElements((prev) =>
       prev.map((el) => {
@@ -67,10 +56,9 @@ export function useSelection(setElements, selectedId, setSelectedId, pushToHisto
     );
   }, [setElements, markLocal]);
 
-  /* ── Resize element by incremental (dx, dy) ───── */
+  /* Resize element by incremental (dx, dy) */
   const resizeElementBy = useCallback((id, dx, dy) => {
     if (!id) return;
-    // Same BUG-3 fix: register as local so resized dimensions are persisted.
     markLocal?.add(id);
     setElements((prev) =>
       prev.map((el) => {

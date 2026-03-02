@@ -1,4 +1,4 @@
-// src/utils/drawing/elements/drawNote.js
+// sticky note likhna tha but Gaddi wala note hogaya h toh leaving it like that
 
 import { wrapText } from '../wrapText.js';
 
@@ -17,7 +17,7 @@ export function drawNote(ctx, el) {
   const y = el.startY;
   const r = 6; // corner radius
 
-  // ── Rounded rectangle background ─────────────────────────────────────
+  //  Rounded rectangle background
   ctx.fillStyle = el.bgColor || '#FDE68A';
   ctx.beginPath();
   ctx.moveTo(x + r,     y);
@@ -37,7 +37,7 @@ export function drawNote(ctx, el) {
   ctx.lineWidth   = 1;
   ctx.stroke();
 
-  // ── Text with clipping so it never overflows ──────────────────────────
+  // Text with clipping so it never overflows
   if (!el.text) return;
 
   const size       = el.fontSize || 16;

@@ -1,7 +1,5 @@
-/**
- * QuotaWarningBanner — Shows a dismissible warning when Firestore daily
- * limits are approaching. Mounts inside App.jsx, appears site-wide.
- */
+//not working, FB se get nhi ho rha h toh show up in application - limit reminder
+
 import { useState, useEffect } from 'react';
 import { getQuotaStatus, LIMITS } from '../utils/quotaTracker.js';
 

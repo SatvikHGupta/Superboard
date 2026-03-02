@@ -1,3 +1,5 @@
+//mota >> lamba
+
 export default function StrokeControl({ strokeWidth, setStrokeWidth }) {
   return (
     <div style={{

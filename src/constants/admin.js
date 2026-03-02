@@ -1,9 +1,5 @@
-// src/constants/admin.js
-//
-// Single source of truth for admin email addresses.
-// Imported by: Dashboard.jsx, AdminPage.jsx
-// Also manually mirrored in Firestore security rules (firebase.rules)
-// — if you add an email here, add it to the rules too.
+// agar email kara yaha se padhke toh reply nhi karunga
+//add email here, add it to the FB rules
 
 export const ADMIN_EMAILS = [
   'shg090404@gmail.com',

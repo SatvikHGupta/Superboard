@@ -1,3 +1,5 @@
+//actual per person usage
+
 import { useState } from 'react';
 
 const LIMITS = { reads: 50_000, writes: 20_000, realtime: 50_000 };

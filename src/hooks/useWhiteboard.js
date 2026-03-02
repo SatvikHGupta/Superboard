@@ -1,12 +1,4 @@
-// src/hooks/useWhiteboard.js
-// v1.4.1 fixes:
-// • markLocal is now properly received from useBoardPersistence and passed
-//   to all sub-hooks that need it (was always undefined before — BUG-1).
-// • markLocal is also passed to useSelection so move/resize/delete of ANY
-//   element (including remote ones) is persisted (BUG-3).
-// • setBoardHeight is exposed in the return value so WhiteboardContext can
-//   drive boardHeight updates from its single onBoardChange listener,
-//   eliminating the duplicate listener that was in useBoardPersistence.
+// isko 12vi fail nhi hone dena, ye ias nhi banega, WB ka 13th reason ho jaayga
 
 import { useState, useCallback, useRef } from 'react';
 import { DEFAULTS }            from '../constants/defaults.js';
@@ -31,8 +23,7 @@ export function useWhiteboard(boardId) {
   const elementsRef   = useRef(elements);
   elementsRef.current = elements;
 
-  // Persistence initialised first so markLocal is available for sub-hooks.
-  // markLocal is now actually returned (was missing before — BUG-1 fix).
+  
   const { saveStatus, saveTimestamp, manualSave, markLocal } = useBoardPersistence(
     boardId, elements, setElements,
     boardHeight, setBoardHeight, canvasElRef,
@@ -41,8 +32,6 @@ export function useWhiteboard(boardId) {
   const { pushToHistory, undo, redo, clearAll, canUndo, canRedo } =
     useHistory(setElements, setSelectedId, markLocal);
 
-  // BUG-3 fix: markLocal passed so move/resize/delete of any element
-  // (including remote ones dragged by this user) gets persisted.
   const { selectAtPoint, deleteSelected, moveElementBy, resizeElementBy } =
     useSelection(setElements, selectedId, setSelectedId, pushToHistory, markLocal);
 
@@ -68,8 +57,7 @@ export function useWhiteboard(boardId) {
     boardWidth, boardHeight, canvasElRef, selectedId,
     setElements, saveStatus, saveTimestamp,
 
-    // setBoardHeight exposed so WhiteboardContext can sync remote boardHeight
-    // changes without a second Firestore listener (DESIGN-1 fix).
+    // setBoardHeight exposed so WhiteboardContext can sync remote boardHeight, changes without a second Firestore listener
     setBoardHeight,
 
     setTool, setColor, setStrokeWidth, setFontSize, setSelectedId,

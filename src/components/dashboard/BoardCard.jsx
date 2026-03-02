@@ -1,8 +1,4 @@
-// src/components/dashboard/BoardCard.jsx
-// v1.4:
-// • Private boards owned by you: shows editor count pill (indigo, people icon)
-// • Boards shared with you (isEditor): shows editor count as small text under "Shared" badge
-// • Date now shows updatedAt for more useful info
+//mini poster
 
 import { useState } from 'react';
 

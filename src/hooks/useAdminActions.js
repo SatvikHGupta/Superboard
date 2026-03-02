@@ -1,3 +1,5 @@
+// tanasha o tanasha - me hu tanasha idhar
+
 import { useCallback } from 'react';
 import { doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { db }                          from '../firebase/config.js';

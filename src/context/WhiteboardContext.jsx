@@ -1,17 +1,4 @@
-// src/context/WhiteboardContext.jsx
-// v1.4 fixes:
-// • boardData now fed by onBoardChange real-time listener (not one-time getBoard),
-//   so isEditor updates immediately when owner adds/removes the user.
-// • Added boardLoading guard so canDraw is never incorrectly false while loading.
-// • Listener cleanup on boardId / user change prevents stale callbacks.
-//
-// v1.4.1 fixes (DESIGN-1):
-// • useBoardPersistence previously opened its own onBoardChange listener solely
-//   to sync boardHeight.  That doubled Firestore read costs for every active
-//   board.  boardHeight is now synced here — the single onBoardChange listener
-//   this context already maintains calls wb.setBoardHeight when the server value
-//   differs from local state.  useBoardPersistence no longer needs its own listener.
-// • canDraw comment corrected: it was contradicting what the code actually does.
+// Whiteboard ka amit shah
 
 import { createContext, useContext, useState, useEffect,
          useRef, useCallback }                         from 'react';
@@ -30,20 +17,11 @@ export function WhiteboardProvider({ boardId, user, children }) {
   const [boardLoading,  setBoardLoading]  = useState(true);
   const [boardMissing,  setBoardMissing]  = useState(false);
 
-  // Keep a ref to wb.boardHeight so the onBoardChange callback can compare
-  // without needing wb in its dependency array.
+  // Keep a ref to wb.boardHeight so the onBoardChange callback can compare without needing wb in its dependency array.
   const boardHeightRef = useRef(wb.boardHeight);
   boardHeightRef.current = wb.boardHeight;
 
-  // ── Board metadata — single real-time listener ───────────────────────────
-  // This is the ONLY onBoardChange subscription for this board.
-  // Previously useBoardPersistence opened a second identical listener for
-  // boardHeight — that has been removed (DESIGN-1 fix).
-  //
-  // Responsibilities:
-  //   1. Drive boardData / boardMissing / boardLoading state.
-  //   2. Sync boardHeight from server → local when the server value differs
-  //      (e.g. another user extended the board).
+  // Board metadata - 2 fix ke baad ab single time listener h
   useEffect(() => {
     if (!boardId) return;
     setBoardLoading(true);
@@ -57,8 +35,7 @@ export function WhiteboardProvider({ boardId, user, children }) {
         setBoardData(board);
         setBoardMissing(false);
 
-        // Sync boardHeight if the server has a different value than local state.
-        // This keeps all clients in sync when someone extends the board.
+        // Sync boardHeight if the server has a different value than local state. This keeps all clients in sync when someone extends the board.
         if (board.boardHeight && board.boardHeight !== boardHeightRef.current) {
           wb.setBoardHeight(board.boardHeight);
         }
@@ -66,9 +43,7 @@ export function WhiteboardProvider({ boardId, user, children }) {
       setBoardLoading(false);
     });
 
-    // onBoardChange uses onSnapshot — if the doc doesn't exist the callback
-    // is called immediately with null (v1.4 fix in boardService.js).
-    // Keep a timeout fallback as belt-and-suspenders for network edge cases.
+    // onBoardChange uses onSnapshot matlab if the doc doesn't exist the callback is called immediately with null. Keep a timeout fallback as belt-and-suspenders for network edge cases.
     const timeout = setTimeout(() => {
       setBoardLoading(prev => {
         if (prev) { setBoardMissing(true); return false; }
@@ -79,7 +54,7 @@ export function WhiteboardProvider({ boardId, user, children }) {
     return () => { unsub(); clearTimeout(timeout); };
   }, [boardId]);  // wb.setBoardHeight is stable (useCallback with no deps)
 
-  // ── Cursor subscription ───────────────────────────────────────────────────
+  // Cursor subscription 
   useEffect(() => {
     if (!boardId || !user) return;
     const unsub = onCursorsChange(boardId, user.uid, cursorsArray => {
@@ -93,16 +68,17 @@ export function WhiteboardProvider({ boardId, user, children }) {
     };
   }, [boardId, user]);
 
-  // ── Cursor broadcast callback ─────────────────────────────────────────────
+  // Cursor broadcast callback
   const handleCursorMove = useCallback((x, y) => {
     if (!boardId || !user) return;
     broadcastCursor(boardId, user.uid, user.displayName || user.email, x, y);
   }, [boardId, user]);
 
-  // ── Permission flags ──────────────────────────────────────────────────────
+  // Permission flags 
   const isOwner = !!(boardData && user && boardData.ownerId === user.uid);
 
-  // Always lowercase before comparing — ShareModal stores emails lowercased.
+  // chota banana, not kela wala banana, make wala banana
+
   const userEmailLower = user?.email?.toLowerCase() ?? '';
   const isEditor = !!(
     boardData && user && !isOwner &&
@@ -110,12 +86,10 @@ export function WhiteboardProvider({ boardId, user, children }) {
     boardData.editors.some(e => e.toLowerCase() === userEmailLower)
   );
 
-  // Block drawing until permissions are confirmed — avoids granting draw
-  // access before we know whether this user is owner or editor.
-  // Once loaded, canDraw is true only for owner or editor.
+  // Owner/editor ke alawa draw nhi hoga
   const canDraw = boardLoading ? false : (isOwner || isEditor);
 
-  // ── Delete-by-id helper ───────────────────────────────────────────────────
+  // Delete by id ka chotu
   const deleteElementById = useCallback((id) => {
     wb.setElements(prev => prev.filter(el => el.id !== id));
   }, [wb.setElements]);
