@@ -163,7 +163,7 @@ cd Superboard
 npm install
 ```
 
-### 3. Firebase Setup
+### 3. Firebase Setup (only if you want to actually make this application as per your rules and your api, cloning will not tell you my API keys, you will have to make yours and add additionally)
 
 Create a Firebase project and enable:
 
